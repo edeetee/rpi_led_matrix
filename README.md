@@ -1,5 +1,5 @@
 # Program to control leds through an ArtNet led strip controller.
-This project is made for the purposes of making a robot mouth running off a raspberry pi
+This project is made for the purposes of making turning a bunch of WS2812 matrixes running off a raspberry pi into a reactive robot mouth.
 
 ## Usage
 - [Install the rust toolchain](https://www.rust-lang.org/tools/install)
