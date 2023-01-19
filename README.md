@@ -1,6 +1,12 @@
 # Program to control leds through an ArtNet led strip controller.
 This project is made for the purposes of making a robot mouth running off a raspberry pi
 
+## Usage
+- [Install the rust toolchain](https://www.rust-lang.org/tools/install)
+- Update the networks constants at the top of main.rs
+- Update the mappings in main.rs
+- Execute '```Cargo run```'
+
 ## Technology
 Rust is the programming language
 
