@@ -1,4 +1,3 @@
-use artnet_protocol::PortAddress;
 use glam::UVec2;
 
 /** Index of a pixel inside a given fixture.

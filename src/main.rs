@@ -1,10 +1,10 @@
-use std::{net::UdpSocket, thread::sleep, time::{Duration, Instant}, collections::HashMap, iter};
+use std::{net::UdpSocket, thread::sleep, time::{Duration, Instant}, collections::HashMap};
 use artnet_protocol::{PortAddress, Output, ArtCommand};
 use glam::Vec2;
 use mapping::{LedMapping};
-use matrix_mapping::LedSquare;
-use palette::{Hsv, rgb::Rgb, FromColor};
-use draw::{tri, Context};
+use matrix_mapping::LedMatrix;
+
+use draw::{Context};
 use crate::draw::draw;
 
 mod mapping;
@@ -17,13 +17,13 @@ const ARTNET_ADDR: &str = &"192.254.250.9";
 
 #[derive(Debug)]
 struct LedMatrixData {
-    mapping: LedSquare,
+    mapping: LedMatrix,
     // data: Vec<[u8; 3]>,
     pos_offset: Vec2
 }
 
 impl LedMatrixData {
-    fn new(mapping: LedSquare, pos_offset: Vec2) -> LedMatrixData {
+    fn new(mapping: LedMatrix, pos_offset: Vec2) -> LedMatrixData {
         LedMatrixData {
             // data: mapping.generate_empty_data(),
             mapping,
@@ -41,9 +41,9 @@ fn main() {
     // let led_mapping = LedSquare::new(16, (0, 0).into());
     // let mut pixel_data = vec![[0,0,0]; led_mapping.get_num_pixels()];
 
-    let strip1 = LedMatrixData::new(LedSquare::new(16, (0, 0).into()), Vec2::ZERO);
+    let strip1 = LedMatrixData::new(LedMatrix::new(16, (0, 0).into()), Vec2::ZERO);
     let addr_after_strip1 = strip1.mapping.get_dmx_mapping(strip1.mapping.get_num_pixels());
-    let strip2 = LedMatrixData::new(LedSquare::new(16, addr_after_strip1), Vec2::new(-16.0, 0.0));
+    let strip2 = LedMatrixData::new(LedMatrix::new(16, addr_after_strip1), Vec2::new(-16.0, 0.0));
 
     let squares: Vec<LedMatrixData> = vec![
         strip1, strip2

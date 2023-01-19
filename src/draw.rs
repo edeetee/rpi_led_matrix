@@ -3,7 +3,7 @@ use std::time::Duration;
 use glam::Vec2;
 use palette::{rgb::Rgb, FromColor, Hsv};
 
-use crate::{mapping::LedMapping, matrix_mapping::LedSquare};
+
 
 pub fn tri(pos: Vec2) -> f32 {
     // let length = pos.length();

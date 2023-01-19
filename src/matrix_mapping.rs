@@ -2,12 +2,12 @@ use crate::mapping::*;
 
 
 #[derive(Debug)]
-pub struct LedSquare {
+pub struct LedMatrix {
     pub address: DmxAddress,
     pub width: LedIndex,
 }
 
-impl LedSquare {
+impl LedMatrix {
     pub fn new(width: LedIndex, address: DmxAddress) -> Self {
         Self {
             width,
@@ -16,7 +16,7 @@ impl LedSquare {
     }
 }
 
-impl Default for LedSquare {
+impl Default for LedMatrix {
     fn default() -> Self {
         Self { width: 16, address: 
             DmxAddress {
@@ -31,7 +31,7 @@ impl Default for LedSquare {
 const CHANNELS_PER_UNIVERSE: usize = 510;
 
 //todo: probably separate these concerns
-impl LedMapping for LedSquare {
+impl LedMapping for LedMatrix {
     /**
      * 
      */
@@ -59,7 +59,7 @@ impl LedMapping for LedSquare {
         // absolute_index
 
         //split the absolute channel into dmx channels and universes
-        let dmx_channel = (absolute_index % CHANNELS_PER_UNIVERSE as LedIndex);
+        let dmx_channel = absolute_index % CHANNELS_PER_UNIVERSE as LedIndex;
         let dmx_universe = self.address.universe + (absolute_index / CHANNELS_PER_UNIVERSE as LedIndex) as u8;
 
         DmxAddress {
