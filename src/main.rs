@@ -122,7 +122,7 @@ fn main() {
                     let center_offset = -glam::Vec2::new(
                         mapping.width as f32 / 2.0 - 0.5,
                         mapping.width as f32 / 2.0 - 0.5,
-                    ) + glam::Vec2::new(0.0, -7.5);
+                    ) + glam::Vec2::new(0.0, -8.0);
 
                     let draw_pos = pos_f + center_offset + fixture.pos_offset;
 
