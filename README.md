@@ -1,7 +1,8 @@
 # Artnet Led Matrix Controller & Previsualizer
 This project turns a bunch of WS2812 matrixes running off a raspberry pi into a reactive robot mouth.
 
-![basic screenshot](media/basic_screenshot.png)
+<!-- ![basic screenshot](media/basic_screenshot.png) -->
+<img src="media/basic_screenshot.png" alt="drawing" width="400"/>
 
 ## Features
 - Previs UI
