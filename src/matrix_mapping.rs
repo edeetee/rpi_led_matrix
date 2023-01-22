@@ -1,7 +1,7 @@
 use crate::mapping::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct LedMatrix {
     pub address: DmxAddress,
     pub width: LedIndex,
@@ -27,14 +27,8 @@ impl Default for LedMatrix {
     }
 }
 
-
-const CHANNELS_PER_UNIVERSE: usize = 510;
-
 //todo: probably separate these concerns
 impl LedMapping for LedMatrix {
-    /**
-     * 
-     */
     fn get_pos(&self, index: LedIndex) -> Pos {
         let mut x = index % self.width;
         let y = index / self.width;
@@ -49,14 +43,9 @@ impl LedMapping for LedMatrix {
     }
 
     fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress{
-        // let pos = self.get_pos(index);
-
-        // let index = pos.y*self.width + pos.x;
         let rgb_index = index*3;
 
         let absolute_index = rgb_index + self.address.channel as LedIndex;
-
-        // absolute_index
 
         //split the absolute channel into dmx channels and universes
         let dmx_channel = absolute_index % CHANNELS_PER_UNIVERSE as LedIndex;
@@ -71,6 +60,4 @@ impl LedMapping for LedMatrix {
     fn get_num_pixels(&self) -> usize {
         (self.width*self.width) as usize
     }
-
-    
 }

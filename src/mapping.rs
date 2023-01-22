@@ -8,20 +8,23 @@ use glam::UVec2;
 pub type LedIndex = usize;
 
 /**
- * Position of the pixel in 2d space
+ * Position of the pixel in 2d space, starting at 0,0
  */
 pub type Pos = UVec2;
 
-#[derive(Debug)]
+
+pub const CHANNELS_PER_UNIVERSE: usize = 510;
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DmxAddress {
+    /**
+     * Pretty much the universe
+     */
+    pub universe: u8,
     /**
      * The DMX address
      */
     pub channel: usize,
-    /**
-     * Pretty much the universe
-     */
-    pub universe: u8
 }
 
 impl From<(usize, u8)> for DmxAddress {
