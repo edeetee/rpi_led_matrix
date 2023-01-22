@@ -1,0 +1,45 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'rpi_led_matrix'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=rpi_led_matrix",
+                    "--package=rpi_led_matrix"
+                ],
+                "filter": {
+                    "name": "rpi_led_matrix",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rpi_led_matrix'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rpi_led_matrix",
+                    "--package=rpi_led_matrix"
+                ],
+                "filter": {
+                    "name": "rpi_led_matrix",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

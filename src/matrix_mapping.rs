@@ -1,6 +1,5 @@
 use crate::mapping::*;
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct LedMatrix {
     pub address: DmxAddress,
@@ -9,20 +8,18 @@ pub struct LedMatrix {
 
 impl LedMatrix {
     pub fn new(width: LedIndex, address: DmxAddress) -> Self {
-        Self {
-            width,
-            address
-        }
+        Self { width, address }
     }
 }
 
 impl Default for LedMatrix {
     fn default() -> Self {
-        Self { width: 16, address: 
-            DmxAddress {
+        Self {
+            width: 16,
+            address: DmxAddress {
                 channel: 0,
-                universe: 0
-            } 
+                universe: 0,
+            },
         }
     }
 }
@@ -42,22 +39,23 @@ impl LedMapping for LedMatrix {
         [x as u32, y as u32].into()
     }
 
-    fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress{
-        let rgb_index = index*3;
+    fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress {
+        let rgb_index = index * 3;
 
         let absolute_index = rgb_index + self.address.channel as LedIndex;
 
         //split the absolute channel into dmx channels and universes
         let dmx_channel = absolute_index % CHANNELS_PER_UNIVERSE as LedIndex;
-        let dmx_universe = self.address.universe + (absolute_index / CHANNELS_PER_UNIVERSE as LedIndex) as u8;
+        let dmx_universe =
+            self.address.universe + (absolute_index / CHANNELS_PER_UNIVERSE as LedIndex) as u8;
 
         DmxAddress {
             channel: dmx_channel,
-            universe: dmx_universe
+            universe: dmx_universe,
         }
     }
 
     fn get_num_pixels(&self) -> usize {
-        (self.width*self.width) as usize
+        (self.width * self.width) as usize
     }
 }

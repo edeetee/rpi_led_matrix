@@ -12,7 +12,6 @@ pub type LedIndex = usize;
  */
 pub type Pos = UVec2;
 
-
 pub const CHANNELS_PER_UNIVERSE: usize = 510;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -48,7 +47,7 @@ pub trait LedMapping {
 
     fn get_num_pixels(&self) -> usize;
 
-    fn generate_empty_data(&self) -> Vec<[u8;3]> {
-        vec![[0,0,0]; self.get_num_pixels()]
+    fn generate_empty_data(&self) -> Vec<[u8; 3]> {
+        vec![[0, 0, 0]; self.get_num_pixels()]
     }
 }
