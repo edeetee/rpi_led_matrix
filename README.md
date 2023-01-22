@@ -1,5 +1,14 @@
-# Program to control leds through an ArtNet led strip controller.
-This project is made for the purposes of making turning a bunch of WS2812 matrixes running off a raspberry pi into a reactive robot mouth.
+# Artnet Led Matrix Controller & Previsualizer
+This project turns a bunch of WS2812 matrixes running off a raspberry pi into a reactive robot mouth.
+
+![basic screenshot](media/basic_screenshot.png)
+
+## Features
+- Previs UI
+- Structs to manage led matrix mappings
+- Logic to properly structure led matrix mapping data to artnet
+- Image generation
+
 
 ## Usage
 - [Install the rust toolchain](https://www.rust-lang.org/tools/install)
