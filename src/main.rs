@@ -7,7 +7,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     net::UdpSocket,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
     thread::{self, sleep},
     time::{Duration, Instant},
 };
@@ -141,7 +141,7 @@ fn main() {
 
                 if let Some(previs_textures) = previs_textures.write().unwrap().as_mut() {
                     let texture_handle = &mut previs_textures[i];
-                    texture_handle.set(previs_image, nearest_img_filter);
+                    texture_handle.set(previs_image, NEAREST_IMG_FILTER);
                 }
 
                 // println!("PIXELS: {:?}", previs_image.pixels);
@@ -183,7 +183,7 @@ fn main() {
                     let image = black_square_image(info.mapping.width);
                     let texture_handle =
                         cc.egui_ctx
-                            .load_texture(format!("img{info:?}"), image, nearest_img_filter);
+                            .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER);
 
                     texture_handle
                 })
@@ -202,7 +202,7 @@ fn main() {
     );
 }
 
-const nearest_img_filter: TextureOptions = TextureOptions {
+const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
     magnification: egui::TextureFilter::Nearest,
     minification: egui::TextureFilter::Nearest,
 };

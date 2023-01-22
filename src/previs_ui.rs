@@ -1,4 +1,4 @@
-use std::{thread::sleep, time::Duration};
+
 
 use eframe::App;
 use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2};
@@ -43,7 +43,7 @@ fn draw_screens(ui: &mut Ui, screens: &Screens) {
             // ui.cursor().set
             // ui.put(image_rect, egui::Image::new(texture_handle, image_size));
 
-            let text_rect = Rect::from_center_size(image_rect.center_top(), ui.available_size());
+            let _text_rect = Rect::from_center_size(image_rect.center_top(), ui.available_size());
             let label = egui::Label::new(egui::RichText::new(info_text).color(Color32::WHITE));
 
             // ui.with_layout(layout, add_contents)
@@ -65,9 +65,9 @@ impl PrevisApp {
 }
 
 impl App for PrevisApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Ui::new
-        let response = egui::CentralPanel::default().show(ctx, |ui| {
+        let _response = egui::CentralPanel::default().show(ctx, |ui| {
             draw_screens(ui, &self.screens);
         });
 
