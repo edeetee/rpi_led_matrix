@@ -10,5 +10,8 @@ artnet_protocol = "0.4.1"
 eframe = "0.20.1"
 egui = {version="0.20.1", features=["mint"]}
 glam = {version="0.22.0", features=["mint"]}
+jack = "0.11.3"
 palette = "0.6.1"
 pv_recorder = "1.1.0"
+spin_sleep = "1.1.1"
+winit = "0.27.5"

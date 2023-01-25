@@ -928,6 +928,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "jack"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa45e2d29c5ec66b9bd760af188a0d31fdea002254d419c63104b9125072140e"
+dependencies = [
+ "bitflags",
+ "jack-sys",
+ "lazy_static",
+ "libc",
+ "log",
+]
+
+[[package]]
+name = "jack-sys"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6013b7619b95a22b576dfb43296faa4ecbe40abbdb97dfd22ead520775fc86ab"
+dependencies = [
+ "bitflags",
+ "lazy_static",
+ "libc",
+ "libloading",
+ "log",
+ "pkg-config",
+]
+
+[[package]]
 name = "jni"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1502,8 +1529,11 @@ dependencies = [
  "eframe",
  "egui",
  "glam",
+ "jack",
  "palette",
  "pv_recorder",
+ "spin_sleep",
+ "winit",
 ]
 
 [[package]]
@@ -1634,6 +1664,16 @@ checksum = "0a345c870a1fae0b1b779085e81b51e614767c239e93503588e54c5b17f4b0e8"
 dependencies = [
  "smithay-client-toolkit",
  "wayland-client",
+]
+
+[[package]]
+name = "spin_sleep"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cafa7900db085f4354dbc7025e25d7a839a14360ea13b5fc4fd717f2d3b23134"
+dependencies = [
+ "once_cell",
+ "winapi",
 ]
 
 [[package]]

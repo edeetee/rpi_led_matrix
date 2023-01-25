@@ -1,15 +1,17 @@
 
 
-use eframe::App;
-use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2};
+use std::sync::mpsc::Receiver;
 
-use crate::LedMatrixInfo;
+use eframe::App;
+use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText};
+
+use crate::{LedMatrixInfo, LedFrameData};
 
 pub type Screens = Vec<(LedMatrixInfo, TextureHandle)>;
 
 fn draw_screens(ui: &mut Ui, screens: &Screens) {
     let all_cursor = ui.cursor();
-    let all_offset = Vec2::new(16.0, 0.0);
+    let all_offset = Vec2::new(8.0, 0.0);
     let image_scale = 10.0;
 
     for (screen_info, texture_handle) in screens {
@@ -56,11 +58,12 @@ fn draw_screens(ui: &mut Ui, screens: &Screens) {
 
 pub struct PrevisApp {
     screens: Screens,
+    frame_info_receiver: Receiver<LedFrameData>
 }
 
 impl PrevisApp {
-    pub fn new(screens: Screens) -> Self {
-        Self { screens }
+    pub fn new(screens: Screens, frame_info_receiver: Receiver<LedFrameData>) -> Self {
+        Self { screens, frame_info_receiver }
     }
 }
 
@@ -68,14 +71,13 @@ impl App for PrevisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Ui::new
         let _response = egui::CentralPanel::default().show(ctx, |ui| {
+
+            let frame_info = self.frame_info_receiver.recv().unwrap();
+            let frame_data_text = format!("target period: {:?}\nlast period: {:?}", frame_info.target_period, frame_info.last_period);
+            ui.label(RichText::new(frame_data_text).monospace());
             draw_screens(ui, &self.screens);
         });
 
         ctx.request_repaint();
-
-        // frame.size
-        // ctx
-        dbg!(ctx.used_size());
-        // frame.set_window_size(response.response.rect.size());
     }
 }

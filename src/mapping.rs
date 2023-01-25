@@ -1,4 +1,4 @@
-use glam::UVec2;
+use glam::{UVec2, Vec2};
 
 /** Index of a pixel inside a given fixture.
  * Each pixel is made up of 3 dmx channels
@@ -10,7 +10,7 @@ pub type LedIndex = usize;
 /**
  * Position of the pixel in 2d space, starting at 0,0
  */
-pub type Pos = UVec2;
+pub type UPos = UVec2;
 
 pub const CHANNELS_PER_UNIVERSE: usize = 510;
 
@@ -32,6 +32,11 @@ impl From<(usize, u8)> for DmxAddress {
     }
 }
 
+pub struct Pixel {
+    address: DmxAddress,
+    pos: Vec2
+}
+
 /**
  * All led mappings are continuous blocks of dmx channels.
  */
@@ -39,7 +44,7 @@ pub trait LedMapping {
     /**
      * Get the position of the pixel in 2d space
      */
-    fn get_pos(&self, index: LedIndex) -> Pos;
+    fn get_pos(&self, index: LedIndex) -> UPos;
     /**
      * Get the DMX index and universe of a given pixel
      */

@@ -26,7 +26,7 @@ impl Default for LedMatrix {
 
 //todo: probably separate these concerns
 impl LedMapping for LedMatrix {
-    fn get_pos(&self, index: LedIndex) -> Pos {
+    fn get_pos(&self, index: LedIndex) -> UPos {
         let mut x = index % self.width;
         let y = index / self.width;
 
