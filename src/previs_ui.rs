@@ -3,7 +3,7 @@
 use std::sync::mpsc::Receiver;
 
 use eframe::App;
-use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText};
+use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, LayerId};
 
 use crate::{LedMatrixInfo, LedFrameData};
 
@@ -69,7 +69,7 @@ impl PrevisApp {
 
 impl App for PrevisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Ui::new
+        
         let _response = egui::CentralPanel::default().show(ctx, |ui| {
 
             let frame_info = self.frame_info_receiver.recv().unwrap();
@@ -77,6 +77,8 @@ impl App for PrevisApp {
             ui.label(RichText::new(frame_data_text).monospace());
             draw_screens(ui, &self.screens);
         });
+
+        // egui::Frame::none()
 
         ctx.request_repaint();
     }

@@ -199,7 +199,7 @@ fn main() {
     });
 
     let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::Vec2::new(500.0, 700.0)),
+        initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
         ..Default::default()
     };
 

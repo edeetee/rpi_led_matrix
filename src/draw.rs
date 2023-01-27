@@ -30,7 +30,7 @@ pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
         0.0
     };
 
-    let scale = Vec2::new(0.1, 0.05);
+    let scale = Vec2::new(0.1, 0.05)*2.0;
     
     let animation_pos = ctx.elapsed_seconds*0.345 - (pos*Vec2::new(1.0*(1.0+(0.123*ctx.elapsed_seconds).sin()),1.0)).length() * 0.055;
     let animated_scale = Vec2::new(1.1 + (((animation_pos.sin() * 1.44512).sin()) * 5.123).sin(), 1.0);
