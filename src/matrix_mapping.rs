@@ -36,7 +36,7 @@ impl LedMapping for LedMatrix {
             x = self.width - 1 - x;
         }
 
-        [x as u32, y as u32].into()
+        [y as u32, x as u32].into()
     }
 
     fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress {

@@ -26,8 +26,8 @@ mod previs_ui;
 mod cli;
 
 const PORT: u16 = 6454;
-const BIND_ADDR: &'static str = "192.254.250.10";
-const ARTNET_ADDR: &str = &"192.254.250.9";
+const BIND_ADDR: &'static str = "192.168.6.5";
+const ARTNET_ADDR: &str = &"192.168.6.4";
 
 #[derive(Debug, Clone)]
 pub struct LedMatrixInfo {
@@ -61,6 +61,12 @@ fn chained_led_matrices(width: usize, address: DmxAddress) -> impl Iterator<Item
         let next_address = prev_strip.get_dmx_mapping(prev_strip.get_num_pixels());
         Some(LedMatrix::new(16, next_address))
     })
+}
+
+fn pos_to_led_info(width: usize, address: DmxAddress, pos: impl IntoIterator<Item=Vec2>) -> impl Iterator<Item=LedMatrixInfo> {
+    chained_led_matrices(width, address)
+        .zip(pos)
+        .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
 }
 
 fn draw_leds(ctx: Context, previs_textures: &mut [TextureHandle], matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) {
@@ -115,19 +121,37 @@ fn main() {
         eprintln!("Could not connect to socket. Continuing with UI.")
     }
 
-    let matrix_positions = vec![
-        Vec2::new(-8.0, 0.0),
-        Vec2::new(8.0, 0.0),
-        Vec2::new(-8.0, 16.0),
-        Vec2::new(8.0, 16.0),
-        Vec2::new(0.0, 2.0 * 16.0),
-        Vec2::new(0.0, 3.0 * 16.0),
-        // Vec2::new()
-    ];
+    // let matrix_positions = vec![
+    //     Vec2::new(-8.0, 0.0),
+    //     Vec2::new(8.0, 0.0),
+    //     Vec2::new(-8.0, 16.0),
+    //     Vec2::new(8.0, 16.0),
+    //     Vec2::new(0.0, 2.0 * 16.0),
+    //     Vec2::new(0.0, 3.0 * 16.0),
+    //     // Vec2::new()
+    // ];
 
-    let matrices = chained_led_matrices(16, (0, 0).into())
-        .zip(matrix_positions)
-        .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
+    // let top_row = chained_led_matrices(16, (0,0).into())
+    //     .zip(vec![
+    //         Vec2::new(-8.0, 0.0),
+    //         Vec2::new(8.0, 0.0),
+    //     ]);
+
+
+
+    // let matrices = chained_led_matrices(16, (0, 0).into())
+    //     .zip(matrix_positions)
+    //     .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
+    //     .collect::<Vec<_>>();
+
+    let matrices = pos_to_led_info(16, (0,44).into(), 
+    vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
+        .chain(
+            pos_to_led_info(16, (0,40).into(), vec![Vec2::new(-8.0, 16.0), Vec2::new(8.0, 16.0)])
+        )
+        .chain(
+            pos_to_led_info(16, (0,48).into(), vec![Vec2::new(-8.0, 2.0*16.0), Vec2::new(8.0, 3.0*16.0)])
+        )
         .collect::<Vec<_>>();
 
     let matrices_clone = matrices.clone();
