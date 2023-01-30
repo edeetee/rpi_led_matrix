@@ -150,7 +150,7 @@ fn main() {
             pos_to_led_info(16, (0,40).into(), vec![Vec2::new(-8.0, 16.0), Vec2::new(8.0, 16.0)])
         )
         .chain(
-            pos_to_led_info(16, (0,48).into(), vec![Vec2::new(-8.0, 2.0*16.0), Vec2::new(8.0, 3.0*16.0)])
+            pos_to_led_info(16, (0,48).into(), vec![Vec2::new(0.0, 2.0*16.0), Vec2::new(0.0, 3.0*16.0)])
         )
         .collect::<Vec<_>>();
 
