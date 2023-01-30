@@ -1,9 +1,10 @@
 use artnet_protocol::{ArtCommand, Output, PortAddress};
+use clap::Parser;
 use egui::{Color32, ColorImage, TextureHandle, TextureOptions};
 use glam::Vec2;
 use mapping::{DmxAddress, LedMapping};
 use matrix_mapping::LedMatrix;
-use spin_sleep::SpinSleeper;
+use spin_sleep::{SpinSleeper, sleep};
 
 use std::{
     collections::HashMap,
@@ -22,6 +23,7 @@ mod draw;
 mod mapping;
 mod matrix_mapping;
 mod previs_ui;
+mod cli;
 
 const PORT: u16 = 6454;
 const BIND_ADDR: &'static str = "192.254.250.10";
@@ -91,12 +93,17 @@ fn draw_leds(ctx: Context, previs_textures: &mut [TextureHandle], matrices: &[Le
                 .swap_with_slice(&mut [color.red, color.green, color.blue]);
         }
 
-        let texture_handle = &mut previs_textures[i];
-        texture_handle.set(previs_image, NEAREST_IMG_FILTER);
+        if i < previs_textures.len() {
+            let texture_handle = &mut previs_textures[i];
+            texture_handle.set(previs_image, NEAREST_IMG_FILTER);
+        }
     }
 }
 
 fn main() {
+    let args = cli::Args::parse();
+
+
     let socket = UdpSocket::bind((BIND_ADDR, 0)).ok();
     let addr = (ARTNET_ADDR, PORT);
 
@@ -133,9 +140,9 @@ fn main() {
  
     let (led_frame_data_tx, led_frame_data_rx) = sync_channel(1);
 
-    thread::spawn(move || {
+    let dmx_thread = thread::spawn(move || {
 
-        let mut previs_textures: Vec<TextureHandle> = previs_textures_rx.recv().expect("Failed to recieve textures");
+        let mut previs_textures: Vec<TextureHandle> = previs_textures_rx.recv_timeout(Duration::from_millis(1000)).unwrap_or(vec![]);
 
         let start_time = Instant::now();
 
@@ -203,33 +210,44 @@ fn main() {
         ..Default::default()
     };
 
-    eframe::run_native(
-        "LED Previs",
-        native_options,
-        Box::new(move |cc| {
-            let previs_textures = matrices_clone
-                .iter()
-                .map(|info| {
-                    let image = black_square_image(info.mapping.width);
+    if !args.headless {
+        eframe::run_native(
+            "LED Previs",
+            native_options,
+            Box::new(move |cc| {
+                let previs_textures = matrices_clone
+                    .iter()
+                    .map(|info| {
+                        let image = black_square_image(info.mapping.width);
+    
+                        cc.egui_ctx
+                            .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
+                    })
+                    .collect::<Vec<_>>();
+    
+                let screens = matrices_clone
+                    .iter()
+                    .cloned()
+                    .zip(previs_textures.iter().cloned())
+                    .collect();
+    
+                previs_textures_tx
+                    .send(previs_textures)
+                    .expect("Failed to send gui texture handles across threads");
+    
+                Box::new(PrevisApp::new(screens, led_frame_data_rx))
+            }),
+        );
+    } else {
+        loop {
+            let data = led_frame_data_rx.recv().unwrap();
 
-                    cc.egui_ctx
-                        .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
-                })
-                .collect::<Vec<_>>();
+            println!("{data:?}");
+            sleep(Duration::from_millis(1000));
+        }
+    }
 
-            let screens = matrices_clone
-                .iter()
-                .cloned()
-                .zip(previs_textures.iter().cloned())
-                .collect();
-
-            previs_textures_tx
-                .send(previs_textures)
-                .expect("Failed to send gui texture handles across threads");
-
-            Box::new(PrevisApp::new(screens, led_frame_data_rx))
-        }),
-    );
+    dmx_thread.join().unwrap();
 }
 
 const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
