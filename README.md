@@ -21,3 +21,6 @@ This project turns a bunch of WS2812 matrixes running off a raspberry pi into a 
 Rust is the programming language
 
 I use a variety of libraries to support the serialization, color and vector math, visible in Cargo.toml.
+
+## Help!
+https://wiki.linuxaudio.org/wiki/raspberrypi

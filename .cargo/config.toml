@@ -1,0 +1,12 @@
+#https://robamu.github.io/post/cross-compile-rust-rpi/
+# Pi 0/1
+# [target.arm-unknown-linux-gnueabihf]
+# linker = "arm-linux-gnueabihf-gcc"
+
+# Pi 2/3/4
+# [target.armv7-unknown-linux-gnueabihf]
+# linker = "arm-none-linux-gnueabihf-gcc"
+
+#[alias]
+#build-rpi = "build --target=aarch64-unknown-linux-gnu --release"
+#build-rpi = "build --target=armv7-unknown-linux-gnueabihf --release"
