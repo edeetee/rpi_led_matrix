@@ -1,15 +1,10 @@
-use std::{time::Duration, thread::sleep, sync::mpsc::{channel, sync_channel}};
+use std::{sync::mpsc::{sync_channel}};
 
-use jack::{ClientOptions, PortFlags, AudioIn, AsyncClient, ClosureProcessHandler};
-
-pub struct AudioData<N, P> {
-    client: AsyncClient<N, P>,
-    reciever: std::sync::mpsc::Receiver<Vec<f32>>
-}
+use jack::{ClientOptions, PortFlags, AudioIn};
 
 pub fn get_audio() -> std::sync::mpsc::Receiver<Vec<f32>> {
     let options = ClientOptions::empty();
-    let (client, client_status) = jack::Client::new("led_matrix_rust", options)
+    let (client, _client_status) = jack::Client::new("led_matrix_rust", options)
         .expect("Failed to open JACK client");
     
     let output_ports = client.ports(None, None, PortFlags::IS_OUTPUT);
@@ -32,7 +27,7 @@ pub fn get_audio() -> std::sync::mpsc::Receiver<Vec<f32>> {
     std::thread::spawn(move || {
     
         // Activate the client, which starts the processing.
-        let active_client = client.activate_async((), process).unwrap();
+        let _active_client = client.activate_async((), process).unwrap();
 
         loop {}
     });

@@ -3,7 +3,7 @@
 use std::sync::mpsc::Receiver;
 
 use eframe::App;
-use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, LayerId};
+use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText};
 
 use crate::{LedMatrixInfo, LedFrameData};
 

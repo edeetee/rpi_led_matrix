@@ -4,13 +4,13 @@ use glam::Vec2;
 use mapping::{DmxAddress, LedMapping};
 use matrix_mapping::LedMatrix;
 use spin_sleep::SpinSleeper;
-use winit::{event_loop::EventLoop, event::Event};
+
 use std::{
     collections::HashMap,
     fmt::Debug,
     net::UdpSocket,
-    sync::{mpsc::{channel, sync_channel}, Arc, RwLock},
-    thread::{self, sleep},
+    sync::{mpsc::{channel, sync_channel}},
+    thread::{self},
     time::{Duration, Instant},
 };
 

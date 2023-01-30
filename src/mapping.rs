@@ -1,4 +1,4 @@
-use glam::{UVec2, Vec2};
+use glam::{UVec2};
 
 /** Index of a pixel inside a given fixture.
  * Each pixel is made up of 3 dmx channels
@@ -30,11 +30,6 @@ impl From<(usize, u8)> for DmxAddress {
     fn from((channel, universe): (usize, u8)) -> Self {
         Self { channel, universe }
     }
-}
-
-pub struct Pixel {
-    address: DmxAddress,
-    pos: Vec2
 }
 
 /**
