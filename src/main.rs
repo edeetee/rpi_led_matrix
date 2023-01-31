@@ -227,7 +227,7 @@ fn main() {
             }
         };
 
-        let target_loop_period = Duration::from_millis(1000 / 120);
+        let target_loop_period = Duration::from_millis(1000 / 60);
         let mut last_start_frame_time = Instant::now();
 
         let sleeper = SpinSleeper::new(10_000_000);

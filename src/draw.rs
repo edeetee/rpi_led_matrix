@@ -52,9 +52,9 @@ pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
     let brightness = 1.0 * mask;
 
     let hsv = Hsv::new(
-        (((shape_val * 10.0 + ctx.elapsed_seconds * 20.0).sin()) * 0.2 + 0.8) * 360.0,
+        (((shape_val * 10.0 + ctx.elapsed_seconds * 20.1232).sin()) * 0.2 + 0.8) * 360.0,
         1.0, // ((shape_val)%1.0).powf(0.5),
-        ((shape_val*1.0 + ctx.elapsed_seconds * 0.0) % 1.0).powi(4) * brightness,
+        ((shape_val*1.0 + ctx.elapsed_seconds * 0.3123) % 1.0).powi(4) * brightness,
     );
 
     Rgb::from_color(hsv).into_format::<u8>()
