@@ -37,7 +37,7 @@ pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
     // let animation_f = ctx.elapsed_seconds*1.545;
     let animation_f = ctx.elapsed_seconds*1.345 - animation_pos.length()/32.0;
 
-    let fact_sin = ((animation_f*3.32).sin() * 1.44512).sin();
+    let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
     let animated_scale = Vec2::new(1.1 + 0.5 * fact_sin, 1.0);
 
     let tri_pos = pos * scale * animated_scale+pos.signum()*audio_val*1.0;

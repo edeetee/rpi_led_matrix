@@ -218,9 +218,10 @@ fn main() {
 
                 match socket {
                     Ok(ref socket_actual) => {
-                        socket_actual
-                            .send(&command.write_to_buffer().unwrap())
-                            .unwrap();
+                        match socket_actual.send(&command.write_to_buffer().unwrap()) {
+                            Ok(_) => {},
+                            Err(err) => {eprintln!("Failed to send via socket {err:?}. Continuing..")},
+                        }
                     }
                     Err(_) => {}
                 }
