@@ -37,7 +37,6 @@ mod audio;
 use crate::audio::get_audio;
 
 
-
 const PORT: u16 = 6454;
 const BIND_ADDR: &'static str = "192.168.6.5";
 const ARTNET_ADDR: &str = &"192.168.6.4";
@@ -129,16 +128,16 @@ fn draw_leds(ctx: Context, #[cfg(feature = "gui")] previs_textures: &mut [Textur
 fn main() {
     let args = cli::Args::parse();
 
-
-    let socket = UdpSocket::bind((BIND_ADDR, 0)).ok();
+    let socket = UdpSocket::bind((BIND_ADDR, 0));
     let addr = (ARTNET_ADDR, PORT);
 
-    if let Some(ref socket) = socket {
-        socket
-            .connect(addr)
-            .expect("Failed to connect to the artnet server");
-    } else {
-        eprintln!("Could not connect to socket. Continuing with UI.")
+    match &socket {
+        Ok(socket) => {
+            socket
+                .connect(addr)
+                .expect("Failed to connect to the artnet server");
+        }
+        Err(err) => eprintln!("Could not bind to socket. \n{err:?}\n Continuing with UI."),
     }
 
     // let matrix_positions = vec![
@@ -218,12 +217,12 @@ fn main() {
                 });
 
                 match socket {
-                    Some(ref socket_actual) => {
+                    Ok(ref socket_actual) => {
                         socket_actual
                             .send(&command.write_to_buffer().unwrap())
                             .unwrap();
                     }
-                    None => {}
+                    Err(_) => {}
                 }
             }
         };
