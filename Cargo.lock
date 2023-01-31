@@ -1581,16 +1581,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pv_recorder"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32150b769ae414f304515c8ce924c6753638c4eaea48bceecbcd85f69d2d16cc"
-dependencies = [
- "libc",
- "libloading",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1663,7 +1653,6 @@ dependencies = [
  "glam",
  "jack",
  "palette",
- "pv_recorder",
  "spin_sleep",
 ]
 
