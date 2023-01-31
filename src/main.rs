@@ -38,8 +38,8 @@ use crate::audio::get_audio;
 
 
 const PORT: u16 = 6454;
-const BIND_ADDR: &'static str = "192.168.6.5";
-const ARTNET_ADDR: &str = &"192.168.6.4";
+const BIND_ADDR: &'static str = "192.168.11.5";
+const ARTNET_ADDR: &str = &"192.168.11.4";
 
 #[derive(Debug, Clone)]
 pub struct LedMatrixInfo {
