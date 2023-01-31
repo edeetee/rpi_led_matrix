@@ -100,7 +100,7 @@ fn draw_leds(ctx: Context, #[cfg(feature = "gui")] previs_textures: &mut [Textur
             let pos_i = mapping.get_pos(i);
             let pos_f = pos_i.as_vec2();
 
-            let center_offset = -glam::Vec2::new(0.5, 1.0)*16.0 + glam::Vec2::new(0.5,0.5);
+            let center_offset = -glam::Vec2::new(0.5, 0.0)*16.0 + glam::Vec2::new(0.5,0.5);
 
             let draw_pos = pos_f + center_offset + fixture.pos_offset;
 
