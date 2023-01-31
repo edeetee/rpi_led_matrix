@@ -33,11 +33,12 @@ pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
     let scale = Vec2::new(0.2, 0.05);
     
     //use this to have the animation animate over the distance
-    let animation_pos = ctx.elapsed_seconds*1.345 - (pos*Vec2::new(1.0*(1.0+(0.123*ctx.elapsed_seconds).sin()),1.0)).length() * 0.055;
-    // let animation_pos = ctx.elapsed_seconds*1.545;
+    let animation_pos = pos*Vec2::new(1.0*(1.0+(0.123*ctx.elapsed_seconds).sin()),1.0);
+    // let animation_f = ctx.elapsed_seconds*1.545;
+    let animation_f = ctx.elapsed_seconds*1.345 - animation_pos.length()*0.055;
 
-    let fact_sin = (((animation_pos.sin() * 1.44512).sin()) * 5.123).sin();
-    let animated_scale = Vec2::new(1.1 + 0.3 * (animation_pos*3.3).sin(), 1.0);
+    let fact_sin = (((animation_f.sin() * 2.44512).sin()) * 1.123);
+    let animated_scale = Vec2::new(1.1 + 0.3 * fact_sin, 1.0);
 
     let tri_pos = pos * scale * animated_scale+pos.signum()*audio_val*1.0;
 
