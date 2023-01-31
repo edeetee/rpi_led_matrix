@@ -1,6 +1,9 @@
 use artnet_protocol::{ArtCommand, Output, PortAddress};
 use clap::Parser;
+
+#[cfg(feature = "gui")]
 use egui::{Color32, ColorImage, TextureHandle, TextureOptions};
+
 use glam::Vec2;
 use mapping::{DmxAddress, LedMapping};
 use matrix_mapping::LedMatrix;
@@ -14,16 +17,26 @@ use std::{
     thread::{self},
     time::{Duration, Instant},
 };
-
-use crate::{audio::get_audio, draw::draw, previs_ui::PrevisApp};
 use draw::Context;
 
-mod audio;
 mod draw;
 mod mapping;
 mod matrix_mapping;
-mod previs_ui;
 mod cli;
+
+use crate::{draw::draw};
+
+#[cfg(feature = "gui")]
+mod previs_ui;
+#[cfg(feature = "gui")]
+use crate::previs_ui::PrevisApp;
+
+#[cfg(feature = "jack")]
+mod audio;
+#[cfg(feature = "jack")]
+use crate::audio::get_audio;
+
+
 
 const PORT: u16 = 6454;
 const BIND_ADDR: &'static str = "192.168.6.5";
@@ -50,6 +63,7 @@ pub struct LedFrameData {
     last_period: Duration
 }
 
+#[cfg(feature = "gui")]
 fn black_square_image(width: usize) -> ColorImage {
     ColorImage::new([width, width], Color32::WHITE)
 }
@@ -69,10 +83,11 @@ fn pos_to_led_info(width: usize, address: DmxAddress, pos: impl IntoIterator<Ite
         .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
 }
 
-fn draw_leds(ctx: Context, previs_textures: &mut [TextureHandle], matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) {
+fn draw_leds(ctx: Context, #[cfg(feature = "gui")] previs_textures: &mut [TextureHandle], matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) {
     for (i, fixture) in matrices.iter().enumerate() {
         let mapping = &fixture.mapping;
         // let fixture_offset = fixt
+        #[cfg(feature = "gui")]
         let mut previs_image = black_square_image(mapping.width);
 
         for i in 0..mapping.get_num_pixels() {
@@ -92,13 +107,18 @@ fn draw_leds(ctx: Context, previs_textures: &mut [TextureHandle], matrices: &[Le
 
             let color = draw(draw_pos, &ctx);
 
-            let pixel_index: usize = pos_i.x as usize + pos_i.y as usize * previs_image.width();
-            previs_image.pixels[pixel_index] = Color32::from_rgb(color.red, color.green, color.blue);
 
+            #[cfg(feature = "gui")]
+            {
+                let pixel_index: usize = pos_i.x as usize + pos_i.y as usize * previs_image.width();
+                previs_image.pixels[pixel_index] = Color32::from_rgb(color.red, color.green, color.blue);
+            }
+            
             dmx_universe_output[dmx_channel_start..dmx_channel_start+3]
                 .swap_with_slice(&mut [color.red, color.green, color.blue]);
         }
 
+        #[cfg(feature = "gui")]
         if i < previs_textures.len() {
             let texture_handle = &mut previs_textures[i];
             texture_handle.set(previs_image, NEAREST_IMG_FILTER);
@@ -156,17 +176,20 @@ fn main() {
 
     let matrices_clone = matrices.clone();
 
+    #[cfg(feature = "gui")]
     let (previs_textures_tx, previs_textures_rx) = channel();
 
     println!("DMX Squares: {matrices:#?}");
-
+    
+    #[cfg(feature = "jack")]
     let audio_rx = get_audio();
  
     let (led_frame_data_tx, led_frame_data_rx) = sync_channel(1);
 
     let dmx_thread = thread::spawn(move || {
 
-        let mut previs_textures: Vec<TextureHandle> = previs_textures_rx.recv_timeout(Duration::from_millis(1000)).unwrap_or(vec![]);
+        #[cfg(feature = "gui")]
+        let mut previs_textures: Vec<TextureHandle> = previs_textures_rx.recv().unwrap_or(vec![]);
 
         let start_time = Instant::now();
 
@@ -179,10 +202,13 @@ fn main() {
             let ctx = Context {
                 elapsed_seconds,
                 elapsed,
+                #[cfg(feature = "jack")]
                 audio: audio_rx.recv().unwrap(),
+                #[cfg(not(feature = "jack"))]
+                audio: vec![0.0]
             };
 
-            draw_leds(ctx, &mut previs_textures, &matrices, &mut dmx_data);
+            draw_leds(ctx, #[cfg(feature = "gui")] &mut previs_textures, &matrices, &mut dmx_data);
 
             for (port_address, data) in &dmx_data {
                 let command = ArtCommand::Output(Output {
@@ -229,39 +255,9 @@ fn main() {
         }
     });
 
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
-        ..Default::default()
-    };
-
-    if !args.headless {
-        eframe::run_native(
-            "LED Previs",
-            native_options,
-            Box::new(move |cc| {
-                let previs_textures = matrices_clone
-                    .iter()
-                    .map(|info| {
-                        let image = black_square_image(info.mapping.width);
-    
-                        cc.egui_ctx
-                            .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
-                    })
-                    .collect::<Vec<_>>();
-    
-                let screens = matrices_clone
-                    .iter()
-                    .cloned()
-                    .zip(previs_textures.iter().cloned())
-                    .collect();
-    
-                previs_textures_tx
-                    .send(previs_textures)
-                    .expect("Failed to send gui texture handles across threads");
-    
-                Box::new(PrevisApp::new(screens, led_frame_data_rx))
-            }),
-        );
+    if !args.headless && cfg!(feature = "gui") {
+        #[cfg(feature = "gui")]
+        show_ui(matrices_clone, led_frame_data_rx, previs_textures_tx);
     } else {
         loop {
             let data = led_frame_data_rx.recv().unwrap();
@@ -274,6 +270,46 @@ fn main() {
     dmx_thread.join().unwrap();
 }
 
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
+#[cfg(feature = "gui")]
+fn show_ui(matrices: Vec<LedMatrixInfo>, led_frame_data_rx: Receiver<LedFrameData>, previs_textures_tx: Sender<Vec<TextureHandle>>) {
+
+    let native_options = eframe::NativeOptions {
+        initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
+        ..Default::default()
+    };
+    
+    eframe::run_native(
+        "LED Previs",
+        native_options,
+        Box::new(move |cc| {
+            let previs_textures = matrices
+                .iter()
+                .map(|info| {
+                    let image = black_square_image(info.mapping.width);
+
+                    cc.egui_ctx
+                        .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
+                })
+                .collect::<Vec<_>>();
+
+            let screens = matrices
+                .iter()
+                .cloned()
+                .zip(previs_textures.iter().cloned())
+                .collect();
+
+            previs_textures_tx
+                .send(previs_textures)
+                .expect("Failed to send gui texture handles across threads");
+
+            Box::new(PrevisApp::new(screens, led_frame_data_rx))
+        }),
+    );
+}
+
+#[cfg(feature = "gui")]
 const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
     magnification: egui::TextureFilter::Nearest,
     minification: egui::TextureFilter::Nearest,

@@ -1665,7 +1665,6 @@ dependencies = [
  "palette",
  "pv_recorder",
  "spin_sleep",
- "winit",
 ]
 
 [[package]]
