@@ -1,9 +1,6 @@
 use artnet_protocol::{ArtCommand, Output, PortAddress};
 use clap::Parser;
 
-#[cfg(feature = "gui")]
-use egui::{Color32, ColorImage, TextureHandle, TextureOptions};
-
 use glam::Vec2;
 use mapping::{DmxAddress, LedMapping};
 use matrix_mapping::LedMatrix;
@@ -13,7 +10,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     net::UdpSocket,
-    sync::{mpsc::{channel, sync_channel, Sender, SyncSender, Receiver}},
+    sync::{mpsc::{sync_channel}},
     thread::{self},
     time::{Duration, Instant},
 };
@@ -28,8 +25,6 @@ use crate::{draw::draw};
 
 #[cfg(feature = "gui")]
 mod previs_ui;
-#[cfg(feature = "gui")]
-use crate::previs_ui::PrevisApp;
 
 #[cfg(feature = "jack")]
 mod audio;
@@ -53,20 +48,12 @@ impl LedMatrixInfo {
     }
 }
 
+
 ///Led data structured in the dmx alignment
 #[derive(Clone)]
 pub struct LedMatrixData {
     info: LedMatrixInfo,
     data: Vec<[u8; 3]>
-}
-
-impl LedMatrixData {
-    fn new(info: LedMatrixInfo, data: Vec<[u8; 3]>) -> Self {
-        Self{
-            info,
-            data
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -91,7 +78,7 @@ fn pos_to_led_info(width: usize, address: DmxAddress, pos: impl IntoIterator<Ite
         .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
 }
 
-fn draw_leds(ctx: Context, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedMatrixData> {
+fn render_leds(ctx: Context, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedMatrixData> {
     let mut led_data: Vec<LedMatrixData> = Vec::with_capacity(matrices.len());
     
     for fixture in matrices {
@@ -184,9 +171,9 @@ fn main() {
                 audio: vec![0.0]
             };
 
-            let led_data = draw_leds(ctx, &matrices, &mut dmx_data);
+            let led_data = render_leds(ctx, &matrices, &mut dmx_data);
 
-            led_frame_tx.try_send(led_data);
+            led_frame_tx.try_send(led_data).ok();
 
             for (port_address, data) in &dmx_data {
                 let command = ArtCommand::Output(Output {

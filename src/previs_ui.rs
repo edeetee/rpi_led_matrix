@@ -1,6 +1,6 @@
 
 
-use std::{sync::mpsc::Receiver, time::Instant};
+use std::{sync::mpsc::Receiver};
 
 use eframe::App;
 use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, ColorImage, TextureOptions};
@@ -117,8 +117,6 @@ impl App for PrevisApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
 
         let frame_info = self.frame_info_receiver.recv().unwrap();
-
-        let frame_length = Instant::now() + frame_info.target_period;
 
         let new_frame = self.frame_data_receiver.recv().unwrap();
         
