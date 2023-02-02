@@ -2,7 +2,7 @@ use artnet_protocol::{ArtCommand, Output, PortAddress};
 use clap::Parser;
 
 use glam::Vec2;
-use mapping::{DmxAddress, LedMapping};
+use mapping::{DmxAddress, LedMappingTrait, LedMappingEnum};
 use matrix_mapping::LedMatrix;
 use spin_sleep::{SpinSleeper, sleep};
 
@@ -19,6 +19,7 @@ use draw::DrawContext;
 mod draw;
 mod mapping;
 mod matrix_mapping;
+mod strip_mapping;
 mod cli;
 
 use crate::{draw::draw};
@@ -34,24 +35,26 @@ const BIND_ADDR: &'static str = "192.168.11.5";
 const ARTNET_ADDR: &str = &"192.168.11.4";
 
 #[derive(Debug, Clone)]
-pub struct LedMatrixInfo {
-    mapping: LedMatrix,
+pub struct LedMappingInfo {
+    mapping: LedMappingEnum,
+    dmx_address: DmxAddress,
     pos_offset: Vec2,
 }
 
-impl LedMatrixInfo {
-    fn new(mapping: LedMatrix, pos_offset: Vec2) -> LedMatrixInfo {
-        LedMatrixInfo {
+impl LedMappingInfo {
+    fn new(mapping: LedMappingEnum, pos_offset: Vec2, dmx_address: DmxAddress) -> Self {
+        LedMappingInfo {
             mapping,
             pos_offset,
+            dmx_address
         }
     }
 }
 
 ///Led data structured in the dmx alignment
 #[derive(Clone)]
-pub struct LedMatrixData {
-    info: LedMatrixInfo,
+pub struct LedData {
+    info: LedMappingInfo,
     data: Vec<[u8; 3]>
 }
 
@@ -62,23 +65,23 @@ pub struct LedFrameInfo {
     rendering_period: Duration,
 }
 
-fn chained_led_matrices(width: usize, address: DmxAddress) -> impl Iterator<Item = LedMatrix> {
-    let first_strip = LedMatrix::new(width, address);
+fn chained_led_mappings<'a, T: LedMappingTrait>(address: DmxAddress, make_mapping: impl Fn() -> T) -> impl Iterator<Item = (DmxAddress, T)> {
+    let first_strip = (address, make_mapping());
 
-    std::iter::successors(Some(first_strip), |prev_strip| {
-        let next_address = prev_strip.start_address.pixel_offset(prev_strip.get_num_pixels());
-        Some(LedMatrix::new(16, next_address))
+    std::iter::successors(Some(first_strip), move |(addr, mapping)| {
+        let next_address = addr.pixel_offset(mapping.get_num_pixels());
+        Some((next_address, make_mapping()))
     })
 }
 
-fn pos_to_led_info(width: usize, address: DmxAddress, pos: impl IntoIterator<Item=Vec2>) -> impl Iterator<Item=LedMatrixInfo> {
-    chained_led_matrices(width, address)
+fn chained_led_matrices(width: usize, address: DmxAddress, pos: impl IntoIterator<Item=Vec2>) -> impl Iterator<Item=LedMappingInfo> {
+    chained_led_mappings(address, move || LedMatrix::new(width))
         .zip(pos)
-        .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
+        .map(|((address, matrix), pos)| LedMappingInfo::new(matrix.into(), pos, address))
 }
 
-fn render_leds(ctx: DrawContext, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedMatrixData> {
-    let mut led_data: Vec<LedMatrixData> = Vec::with_capacity(matrices.len());
+fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedData> {
+    let mut led_data: Vec<LedData> = Vec::with_capacity(matrices.len());
     
     for fixture in matrices {
         let mapping = &fixture.mapping;
@@ -86,7 +89,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMatrixInfo], dmx_data: &mut Hash
         let mut pixels = vec![[0,0,0]; mapping.get_num_pixels()];
 
         for i in 0..mapping.get_num_pixels() {
-            let dmx_target = mapping.start_address.pixel_offset(i);
+            let dmx_target = fixture.dmx_address.pixel_offset(i);
             let dmx_channel_start = dmx_target.channel;
 
             let dmx_universe_output = dmx_data
@@ -108,7 +111,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMatrixInfo], dmx_data: &mut Hash
                 .swap_with_slice(&mut [color.red, color.green, color.blue]);
         }
 
-        led_data.push(LedMatrixData { info: fixture.clone(), data: pixels });
+        led_data.push(LedData { info: fixture.clone(), data: pixels });
     }
     
     led_data
@@ -129,13 +132,13 @@ fn main() {
         Err(err) => eprintln!("Could not bind to socket. \n{err:?}\n Continuing with UI."),
     }
 
-    let matrices = pos_to_led_info(16, (0,44).into(), 
+    let matrices = chained_led_matrices(16, (0,44).into(), 
     vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
         .chain(
-            pos_to_led_info(16, (0,40).into(), vec![Vec2::new(-8.0, 16.0), Vec2::new(8.0, 16.0)])
+            chained_led_matrices(16, (0,40).into(), vec![Vec2::new(-8.0, 16.0), Vec2::new(8.0, 16.0)])
         )
         .chain(
-            pos_to_led_info(16, (0,48).into(), vec![Vec2::new(0.0, 2.0*16.0), Vec2::new(0.0, 3.0*16.0)])
+            chained_led_matrices(16, (0,48).into(), vec![Vec2::new(0.0, 2.0*16.0), Vec2::new(0.0, 3.0*16.0)])
         )
         .collect::<Vec<_>>();
 

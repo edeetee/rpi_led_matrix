@@ -1,4 +1,7 @@
+use enum_dispatch::enum_dispatch;
 use glam::{UVec2};
+
+use crate::matrix_mapping::LedMatrix;
 
 /** Index of a pixel inside a given fixture.
  * Each pixel is made up of 3 dmx channels
@@ -16,13 +19,9 @@ pub const CHANNELS_PER_UNIVERSE: usize = 510;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DmxAddress {
-    /**
-     * Pretty much the universe
-     */
+    /// Pretty much the universe
     pub universe: u8,
-    /**
-     * The DMX address
-     */
+    /// The DMX512 address
     pub channel: usize,
 }
 
@@ -51,20 +50,21 @@ impl From<(usize, u8)> for DmxAddress {
     }
 }
 
-/**
- * All led mappings are continuous blocks of dmx channels.
- */
-pub trait LedMapping {
-    /**
-     * Get the position of the pixel in 2d space
-     */
+#[enum_dispatch(LedMappingEnum)]
+/// Maps an led fixture to 2d coordinates
+pub trait LedMappingTrait: Clone {
+    /// Get the position of the pixel in 2d space
     fn get_pos(&self, index: LedIndex) -> UPos;
 
+    //max size of the whole fixture
     fn get_size(&self) -> UVec2;
 
+    //number of pixels in the fixture
     fn get_num_pixels(&self) -> usize;
+}
 
-    fn generate_empty_data(&self) -> Vec<[u8; 3]> {
-        vec![[0, 0, 0]; self.get_num_pixels()]
-    }
+#[enum_dispatch]
+#[derive(Debug, Clone)]
+pub enum LedMappingEnum {
+    LedMatrix
 }

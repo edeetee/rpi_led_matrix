@@ -23,3 +23,4 @@ egui = {version="0.20.1", features=["mint"], optional=true}
 glam = { version = "0.22.0", features = ["mint"] }
 noise = "0.8.2"
 egui-multiwin = {version="0.1.2", optional=true}
+enum_dispatch = "0.3.11"

@@ -6,11 +6,7 @@ use std::{sync::mpsc::Receiver};
 use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, ColorImage, TextureOptions, Context, Frame};
 use egui_multiwin::{tracked_window::{TrackedWindow, RedrawResponse, TrackedWindowOptions}, multi_window::{MultiWindow, NewWindowRequest}, glutin::{event_loop, window::WindowBuilder, dpi::{PhysicalSize, LogicalSize, LogicalPosition}, platform::macos::WindowBuilderExtMacOS}};
 
-use crate::{LedMatrixInfo, LedFrameInfo, LedMatrixData, mapping::LedMapping};
-
-fn black_square_image(width: usize) -> ColorImage {
-    ColorImage::new([width, width], Color32::WHITE)
-}
+use crate::{LedMappingInfo, LedFrameInfo, LedData, mapping::{LedMappingTrait, LedMappingEnum}, matrix_mapping::LedMatrix};
 
 struct InfoWindow{
     info_receiver: Receiver<LedFrameInfo>
@@ -58,12 +54,7 @@ fn new_window_request<T: TrackedWindow<Data=()> + 'static>(window: T, builder: W
     }
 }
 
-pub fn run_gui(matrices: Vec<LedMatrixInfo>, led_frame_data_rx: Receiver<Vec<LedMatrixData>>, led_frame_info_rx: Receiver<LedFrameInfo>) {
-
-    // let native_options = eframe::NativeOptions {
-    //     initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
-    //     ..Default::default()
-    // };
+pub fn run_gui(matrices: Vec<LedMappingInfo>, led_frame_data_rx: Receiver<Vec<LedData>>, led_frame_info_rx: Receiver<LedFrameInfo>) {
     
     let mut windows = MultiWindow::new();
 
@@ -113,12 +104,19 @@ const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
 };
 
 struct LedFixtureGroup {
-    matrices: Vec<LedMatrixInfo>,
+    matrices: Vec<LedMappingInfo>,
     textures: Option<Vec<TextureHandle>>
 }
 
+const SCALE: f32 = 10.0;
+
+fn gen_image_for_mapping(mapping: &LedMappingEnum) -> ColorImage {
+    let size = mapping.get_size();
+    ColorImage::new([size.x as usize, size.y as usize], Color32::WHITE)
+}
+
 impl LedFixtureGroup {
-    fn new(matrices: Vec<LedMatrixInfo>) -> Self {
+    fn new(matrices: Vec<LedMappingInfo>) -> Self {
         Self {
             matrices,
             textures: None
@@ -129,20 +127,18 @@ impl LedFixtureGroup {
         let rects = self.matrices.iter()
             .map(|info| {
                 let min = Vec2::new(info.pos_offset.x, info.pos_offset.y);
-                let size = Vec2::new(info.mapping.width as f32, info.mapping.width as f32);
-                Rect::from_min_size((min * 10.0).to_pos2(), size*10.0)
+                let u_size = info.mapping.get_size();
+                let size = Vec2::new(u_size.x as f32, u_size.y as f32);
+                Rect::from_min_size((min * SCALE).to_pos2(), size*SCALE)
             });
 
         // let max = positions.fold(Vec2::INFINITY, Vec2::min) + ;
         // let min = positions.fold(Vec2::ZERO, Vec2::max);
 
         rects.reduce(Rect::union).unwrap()
-        
-        // Rect::
-        // Rect::from_points(&positions).extend_with(p)
     }
 
-    fn iter(&self) -> impl Iterator<Item=(&LedMatrixInfo, &TextureHandle)> {
+    fn iter(&self) -> impl Iterator<Item=(&LedMappingInfo, &TextureHandle)> {
         self.textures.iter().flat_map(|textures| {
             textures.iter()
                 .zip(self.matrices.iter())
@@ -155,9 +151,7 @@ impl LedFixtureGroup {
             self.matrices
                 .iter()
                 .map(|info| {
-                    let image = black_square_image(info.mapping.width);
-
-                    ctx.load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
+                    ctx.load_texture(format!("img{info:?}"), gen_image_for_mapping(&info.mapping), NEAREST_IMG_FILTER)
                 })
                 .collect()
         })
@@ -184,7 +178,7 @@ fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
 
         let info_text = format!(
             "universe {}\nchannel {}",
-            screen_info.mapping.start_address.universe, screen_info.mapping.start_address.channel
+            screen_info.dmx_address.universe, screen_info.dmx_address.channel
         );
 
         egui::Frame::none()
@@ -214,7 +208,7 @@ fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
 
 pub struct ScreensWindow {
     fixtures: LedFixtureGroup,
-    frame_data_receiver: Receiver<Vec<LedMatrixData>>
+    frame_data_receiver: Receiver<Vec<LedData>>
 }
 
 impl TrackedWindow for ScreensWindow {
@@ -229,7 +223,7 @@ impl TrackedWindow for ScreensWindow {
         let textures =  self.fixtures.get_textures(&mut egui.egui_ctx);
 
         for (data, screen) in new_frame.iter().zip(textures.iter_mut()) {
-            let mut image = black_square_image(data.info.mapping.width);
+            let mut image = gen_image_for_mapping(&data.info.mapping);
 
             for (i, pixel) in data.data.iter().enumerate() {
                 let pos_i = data.info.mapping.get_pos(i);

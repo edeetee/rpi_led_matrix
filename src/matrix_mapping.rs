@@ -4,30 +4,25 @@ use crate::mapping::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LedMatrix {
-    pub start_address: DmxAddress,
     pub width: LedIndex,
 }
 
 impl LedMatrix {
-    pub fn new(width: LedIndex, address: DmxAddress) -> Self {
-        Self { width, start_address: address }
+    pub fn new(width: LedIndex) -> Self {
+        Self { width }
     }
 }
 
 impl Default for LedMatrix {
     fn default() -> Self {
         Self {
-            width: 16,
-            start_address: DmxAddress {
-                channel: 0,
-                universe: 0,
-            },
+            width: 16
         }
     }
 }
 
 //todo: probably separate these concerns
-impl LedMapping for LedMatrix {
+impl LedMappingTrait for LedMatrix {
     fn get_pos(&self, index: LedIndex) -> UPos {
         let mut x = index % self.width;
         let y = index / self.width;
