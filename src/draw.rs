@@ -35,7 +35,7 @@ pub fn draw(ctx: &DrawContext, pos: Vec2) -> Rgb<palette::encoding::Srgb, u8> {
     let scale = Vec2::new(0.2, 0.05);
     
     //use this to have the animation animate over the distance
-    let offset = 1.423*ctx.elapsed_seconds;
+    let offset = 0.423*ctx.elapsed_seconds;
     let offset_val = offset.sin();
     // let offset_val = ctx.noise.get([ctx.elapsed_seconds as f64*10.0, 0.0]) as f32;
 

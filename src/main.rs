@@ -103,7 +103,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 
             let pos_f_scale = match mapping {
                 LedMappingEnum::MatrixMapping(_) => Vec2::ONE,
-                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.2,
+                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.1,
             };
 
             let draw_pos = pos_f*pos_f_scale + center_offset + fixture.pos_offset;
