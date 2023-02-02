@@ -26,6 +26,25 @@ pub struct DmxAddress {
     pub channel: usize,
 }
 
+impl DmxAddress {
+    ///Calulate the dmx address for a given pixel
+    pub fn pixel_offset(&self, index: LedIndex) -> DmxAddress {
+        let rgb_index = index * 3;
+
+        let absolute_index = rgb_index + self.channel as LedIndex;
+
+        //split the absolute channel into dmx channels and universes
+        let dmx_channel = absolute_index % CHANNELS_PER_UNIVERSE as LedIndex;
+        let dmx_universe =
+            self.universe + (absolute_index / CHANNELS_PER_UNIVERSE as LedIndex) as u8;
+
+        DmxAddress {
+            channel: dmx_channel,
+            universe: dmx_universe,
+        }
+    }
+}
+
 impl From<(usize, u8)> for DmxAddress {
     fn from((channel, universe): (usize, u8)) -> Self {
         Self { channel, universe }
@@ -40,10 +59,8 @@ pub trait LedMapping {
      * Get the position of the pixel in 2d space
      */
     fn get_pos(&self, index: LedIndex) -> UPos;
-    /**
-     * Get the DMX index and universe of a given pixel
-     */
-    fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress;
+
+    fn get_size(&self) -> UVec2;
 
     fn get_num_pixels(&self) -> usize;
 

@@ -14,7 +14,7 @@ use std::{
     thread::{self},
     time::{Duration, Instant},
 };
-use draw::Context;
+use draw::DrawContext;
 
 mod draw;
 mod mapping;
@@ -48,7 +48,6 @@ impl LedMatrixInfo {
     }
 }
 
-
 ///Led data structured in the dmx alignment
 #[derive(Clone)]
 pub struct LedMatrixData {
@@ -67,7 +66,7 @@ fn chained_led_matrices(width: usize, address: DmxAddress) -> impl Iterator<Item
     let first_strip = LedMatrix::new(width, address);
 
     std::iter::successors(Some(first_strip), |prev_strip| {
-        let next_address = prev_strip.get_dmx_mapping(prev_strip.get_num_pixels());
+        let next_address = prev_strip.start_address.pixel_offset(prev_strip.get_num_pixels());
         Some(LedMatrix::new(16, next_address))
     })
 }
@@ -78,7 +77,7 @@ fn pos_to_led_info(width: usize, address: DmxAddress, pos: impl IntoIterator<Ite
         .map(|(matrix, pos)| LedMatrixInfo::new(matrix, pos))
 }
 
-fn render_leds(ctx: Context, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedMatrixData> {
+fn render_leds(ctx: DrawContext, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<PortAddress, [u8; 512]>) -> Vec<LedMatrixData> {
     let mut led_data: Vec<LedMatrixData> = Vec::with_capacity(matrices.len());
     
     for fixture in matrices {
@@ -87,7 +86,7 @@ fn render_leds(ctx: Context, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<
         let mut pixels = vec![[0,0,0]; mapping.get_num_pixels()];
 
         for i in 0..mapping.get_num_pixels() {
-            let dmx_target = mapping.get_dmx_mapping(i);
+            let dmx_target = mapping.start_address.pixel_offset(i);
             let dmx_channel_start = dmx_target.channel;
 
             let dmx_universe_output = dmx_data
@@ -101,7 +100,7 @@ fn render_leds(ctx: Context, matrices: &[LedMatrixInfo], dmx_data: &mut HashMap<
 
             let draw_pos = pos_f + center_offset + fixture.pos_offset;
 
-            let color = draw(draw_pos, &ctx);
+            let color = draw(&ctx, draw_pos);
 
             pixels[i] = [color.red, color.green, color.blue];
 
@@ -130,7 +129,6 @@ fn main() {
         Err(err) => eprintln!("Could not bind to socket. \n{err:?}\n Continuing with UI."),
     }
 
-
     let matrices = pos_to_led_info(16, (0,44).into(), 
     vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
         .chain(
@@ -147,6 +145,7 @@ fn main() {
     
     #[cfg(feature = "jack")]
     let audio_rx = audio::get_audio();
+    let mut noise = noise::Perlin::default();
  
     let (led_frame_tx, led_frame_rx) = sync_channel(1);
     let (led_frame_info_tx, led_frame_data_rx) = sync_channel(1);
@@ -161,9 +160,10 @@ fn main() {
             let elapsed = start_time.elapsed();
             let elapsed_seconds = elapsed.as_secs_f32();
             
-            let ctx = Context {
+            let ctx = DrawContext {
                 elapsed_seconds,
                 elapsed,
+                noise,
 
                 #[cfg(feature = "jack")]
                 audio: audio_rx.recv().unwrap(),

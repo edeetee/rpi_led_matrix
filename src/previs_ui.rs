@@ -2,8 +2,9 @@
 
 use std::{sync::mpsc::Receiver};
 
-use eframe::App;
-use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, ColorImage, TextureOptions};
+// use eframe::App;
+use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, ColorImage, TextureOptions, Context, Frame};
+use egui_multiwin::{tracked_window::{TrackedWindow, RedrawResponse, TrackedWindowOptions}, multi_window::{MultiWindow, NewWindowRequest}, glutin::{event_loop, window::WindowBuilder, dpi::{PhysicalSize, LogicalSize, LogicalPosition}, platform::macos::WindowBuilderExtMacOS}};
 
 use crate::{LedMatrixInfo, LedFrameInfo, LedMatrixData, mapping::LedMapping};
 
@@ -11,39 +12,99 @@ fn black_square_image(width: usize) -> ColorImage {
     ColorImage::new([width, width], Color32::WHITE)
 }
 
-pub fn run_gui(matrices: Vec<LedMatrixInfo>, led_frame_rx: Receiver<Vec<LedMatrixData>>, led_frame_data_rx: Receiver<LedFrameInfo>) {
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
-        ..Default::default()
-    };
-    
-    eframe::run_native(
-        "LED Previs",
-        native_options,
-        Box::new(move |cc| {
-            let previs_textures = matrices
-                .iter()
-                .map(|info| {
-                    let image = black_square_image(info.mapping.width);
+struct InfoWindow{
+    info_receiver: Receiver<LedFrameInfo>
+}
 
-                    cc.egui_ctx
-                        .load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
-                })
-                .collect::<Vec<_>>();
+impl TrackedWindow for InfoWindow {
+    type Data = ();
 
-            let screens = matrices
-                .iter()
-                .cloned()
-                .zip(previs_textures.iter().cloned())
-                .collect();
+    fn is_root(&self) -> bool {
+        true
+    }
 
-            // previs_textures_tx
-            //     .send(previs_textures)
-            //     .expect("Failed to send gui texture handles across threads");
-
-            Box::new(PrevisApp::new(screens, led_frame_data_rx, led_frame_rx))
-        }),
+    fn redraw(&mut self, data: &mut Self::Data, egui: &mut egui_multiwin::egui_glow::EguiGlow) -> egui_multiwin::tracked_window::RedrawResponse<Self::Data> {
+        let frame_info = self.info_receiver.recv().unwrap();
+        let frame_data_text = format!(
+            "target period: {:.2}ms\nlast period: {:.2}ms\nrendering period: {:.2}ms", 
+            frame_info.target_period.as_secs_f32()*1000.0, 
+            frame_info.last_period.as_secs_f32()*1000.0, 
+            frame_info.rendering_period.as_secs_f32()*1000.0
     );
+
+        egui.egui_winit.set_pixels_per_point(2.0);
+
+        let _response = egui::CentralPanel::default().show(&egui.egui_ctx, |ui| {
+
+            ui.label(RichText::new(frame_data_text).monospace());
+        });
+
+        RedrawResponse{
+            quit: false,
+            new_windows: vec![]
+        }
+    }
+}
+
+fn new_window_request<T: TrackedWindow<Data=()> + 'static>(window: T, builder: WindowBuilder) -> NewWindowRequest<()> {
+    NewWindowRequest{
+        window_state: Box::new(window),
+
+        builder: builder,
+        options: TrackedWindowOptions{
+            vsync: true,
+            shader: None
+        },
+    }
+}
+
+pub fn run_gui(matrices: Vec<LedMatrixInfo>, led_frame_data_rx: Receiver<Vec<LedMatrixData>>, led_frame_info_rx: Receiver<LedFrameInfo>) {
+
+    // let native_options = eframe::NativeOptions {
+    //     initial_window_size: Some(egui::Vec2::new(340.0, 700.0)),
+    //     ..Default::default()
+    // };
+    
+    let mut windows = MultiWindow::new();
+
+    let event_loop = event_loop::EventLoop::default();
+
+    let decorated_builder = WindowBuilder::new()
+        // .with_decorations(false)
+        .with_title("LED GUI")
+        .with_always_on_top(false)
+        .with_movable_by_window_background(true)
+        .with_transparent(true);
+
+    let undecorated_builder = decorated_builder.clone()
+        .with_decorations(false);
+
+    windows.add(
+    new_window_request(
+            InfoWindow{
+                info_receiver: led_frame_info_rx
+            }, 
+            decorated_builder.clone()
+                .with_position(LogicalPosition::new(0.0,0.0))
+                .with_inner_size(LogicalSize::new(250.0, 100.0))
+    ), &event_loop).unwrap();
+
+    let fixture_group = LedFixtureGroup::new(matrices);
+    let fixture_group_rect = fixture_group.screen_rect();
+    println!("Fixture window of size {fixture_group_rect:#?}");
+    
+    windows.add(
+        new_window_request(
+            ScreensWindow{
+                frame_data_receiver: led_frame_data_rx,
+                fixtures: fixture_group
+            }, 
+            undecorated_builder.clone()
+                .with_position(LogicalPosition::new(300.0, 0.0))
+                .with_inner_size(LogicalSize::new(fixture_group_rect.width(), fixture_group_rect.height())),
+        ), &event_loop).unwrap();
+
+    windows.run(event_loop, ());
 }
 
 const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
@@ -51,15 +112,65 @@ const NEAREST_IMG_FILTER: TextureOptions = TextureOptions {
     minification: egui::TextureFilter::Nearest,
 };
 
+struct LedFixtureGroup {
+    matrices: Vec<LedMatrixInfo>,
+    textures: Option<Vec<TextureHandle>>
+}
 
-pub type Screens = Vec<(LedMatrixInfo, TextureHandle)>;
+impl LedFixtureGroup {
+    fn new(matrices: Vec<LedMatrixInfo>) -> Self {
+        Self {
+            matrices,
+            textures: None
+        }
+    }
 
-fn draw_screens(ui: &mut Ui, screens: &Screens) {
+    fn screen_rect(&self) -> Rect {
+        let rects = self.matrices.iter()
+            .map(|info| {
+                let min = Vec2::new(info.pos_offset.x, info.pos_offset.y);
+                let size = Vec2::new(info.mapping.width as f32, info.mapping.width as f32);
+                Rect::from_min_size((min * 10.0).to_pos2(), size*10.0)
+            });
+
+        // let max = positions.fold(Vec2::INFINITY, Vec2::min) + ;
+        // let min = positions.fold(Vec2::ZERO, Vec2::max);
+
+        rects.reduce(Rect::union).unwrap()
+        
+        // Rect::
+        // Rect::from_points(&positions).extend_with(p)
+    }
+
+    fn iter(&self) -> impl Iterator<Item=(&LedMatrixInfo, &TextureHandle)> {
+        self.textures.iter().flat_map(|textures| {
+            textures.iter()
+                .zip(self.matrices.iter())
+                .map(|(handle, info)| (info, handle))
+        })
+    }
+
+    fn get_textures(&mut self, ctx: &mut Context) -> &mut [TextureHandle] {
+        self.textures.get_or_insert_with(|| {
+            self.matrices
+                .iter()
+                .map(|info| {
+                    let image = black_square_image(info.mapping.width);
+
+                    ctx.load_texture(format!("img{info:?}"), image, NEAREST_IMG_FILTER)
+                })
+                .collect()
+        })
+    }
+}
+
+fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
     let all_cursor = ui.cursor();
     let all_offset = Vec2::new(8.0, 0.0);
+    // let min_offset = group.re
     let image_scale = 10.0;
 
-    for (screen_info, texture_handle) in screens {
+    for (screen_info, texture_handle) in group.iter() {
         let texture_size = texture_handle.size_vec2();
         let screen_offset = screen_info.pos_offset;
 
@@ -73,7 +184,7 @@ fn draw_screens(ui: &mut Ui, screens: &Screens) {
 
         let info_text = format!(
             "universe {}\nchannel {}",
-            screen_info.mapping.address.universe, screen_info.mapping.address.channel
+            screen_info.mapping.start_address.universe, screen_info.mapping.start_address.channel
         );
 
         egui::Frame::none()
@@ -101,26 +212,23 @@ fn draw_screens(ui: &mut Ui, screens: &Screens) {
     }
 }
 
-pub struct PrevisApp {
-    screens: Screens,
-    frame_info_receiver: Receiver<LedFrameInfo>,
+pub struct ScreensWindow {
+    fixtures: LedFixtureGroup,
     frame_data_receiver: Receiver<Vec<LedMatrixData>>
 }
 
-impl PrevisApp {
-    pub fn new(screens: Screens, frame_info_receiver: Receiver<LedFrameInfo>, frame_data_receiver: Receiver<Vec<LedMatrixData>>) -> Self {
-        Self { screens, frame_info_receiver, frame_data_receiver }
-    }
-}
+impl TrackedWindow for ScreensWindow {
+    type Data = ();
 
-impl App for PrevisApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-
-        let frame_info = self.frame_info_receiver.recv().unwrap();
+    fn redraw(&mut self, _c: &mut Self::Data, egui: &mut egui_multiwin::egui_glow::EguiGlow) -> RedrawResponse<Self::Data> {
+        // frame.drag_window();
+        egui.egui_winit.set_pixels_per_point(2.0);
 
         let new_frame = self.frame_data_receiver.recv().unwrap();
-        
-        for (data, screen) in new_frame.iter().zip(&mut self.screens) {
+
+        let textures =  self.fixtures.get_textures(&mut egui.egui_ctx);
+
+        for (data, screen) in new_frame.iter().zip(textures.iter_mut()) {
             let mut image = black_square_image(data.info.mapping.width);
 
             for (i, pixel) in data.data.iter().enumerate() {
@@ -130,18 +238,19 @@ impl App for PrevisApp {
                 image.pixels[pixel_index] = Color32::from_rgb(pixel[0], pixel[1], pixel[2]);
 
             }
-            screen.1.set(image, NEAREST_IMG_FILTER)
+            screen.set(image, NEAREST_IMG_FILTER)
         }
         
-        let _response = egui::CentralPanel::default().show(ctx, |ui| {
-
-            let frame_data_text = format!("target period: {:?}\nlast period: {:?}\nrendering period: {:?}", frame_info.target_period, frame_info.last_period, frame_info.rendering_period);
-            ui.label(RichText::new(frame_data_text).monospace());
-            draw_screens(ui, &self.screens);
-        });
+        let _response = egui::CentralPanel::default()
+            .frame(Frame::none().fill(Color32::BLACK))
+            .show(&egui.egui_ctx, |ui| {
+                draw_screens(ui, &self.fixtures);
+            });
 
         // egui::Frame::none()
 
-        ctx.request_repaint();
+        egui.egui_ctx.request_repaint();
+
+        RedrawResponse { quit: false, new_windows: vec![] }
     }
 }

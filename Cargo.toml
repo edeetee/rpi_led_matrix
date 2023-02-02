@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-gui = ["dep:egui", "dep:eframe"]
+gui = ["dep:egui", "dep:egui-multiwin"]
 jack = ["dep:jack"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,6 +18,8 @@ spin_sleep = "1.1.1"
 
 jack = {version="0.11.3", optional=true}
 
-eframe = {version="0.20.1", optional=true}
+# eframe = {version="0.20.1", optional=true}
 egui = {version="0.20.1", features=["mint"], optional=true}
-glam = {version="0.22.0", features=["mint"]}
+glam = { version = "0.22.0", features = ["mint"] }
+noise = "0.8.2"
+egui-multiwin = {version="0.1.2", optional=true}

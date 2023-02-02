@@ -1,14 +1,16 @@
+use glam::{Vec2, UVec2};
+
 use crate::mapping::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LedMatrix {
-    pub address: DmxAddress,
+    pub start_address: DmxAddress,
     pub width: LedIndex,
 }
 
 impl LedMatrix {
     pub fn new(width: LedIndex, address: DmxAddress) -> Self {
-        Self { width, address }
+        Self { width, start_address: address }
     }
 }
 
@@ -16,7 +18,7 @@ impl Default for LedMatrix {
     fn default() -> Self {
         Self {
             width: 16,
-            address: DmxAddress {
+            start_address: DmxAddress {
                 channel: 0,
                 universe: 0,
             },
@@ -39,20 +41,8 @@ impl LedMapping for LedMatrix {
         [y as u32, x as u32].into()
     }
 
-    fn get_dmx_mapping(&self, index: LedIndex) -> DmxAddress {
-        let rgb_index = index * 3;
-
-        let absolute_index = rgb_index + self.address.channel as LedIndex;
-
-        //split the absolute channel into dmx channels and universes
-        let dmx_channel = absolute_index % CHANNELS_PER_UNIVERSE as LedIndex;
-        let dmx_universe =
-            self.address.universe + (absolute_index / CHANNELS_PER_UNIVERSE as LedIndex) as u8;
-
-        DmxAddress {
-            channel: dmx_channel,
-            universe: dmx_universe,
-        }
+    fn get_size(&self) -> UVec2 {
+        UVec2::new(self.width as u32, self.width as u32)
     }
 
     fn get_num_pixels(&self) -> usize {

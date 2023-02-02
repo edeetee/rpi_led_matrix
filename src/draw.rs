@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use glam::Vec2;
+use noise::{NoiseFn, Perlin};
 use palette::{rgb::Rgb, FromColor, Hsv};
 
 pub fn tri(pos: Vec2) -> f32 {
@@ -12,13 +13,14 @@ pub fn tri(pos: Vec2) -> f32 {
     added
 }
 
-pub struct Context {
+pub struct DrawContext {
     pub elapsed: Duration,
     pub elapsed_seconds: f32,
-    pub audio: Vec<f32>
+    pub audio: Vec<f32>,
+    pub noise: Perlin
 }
 
-pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
+pub fn draw(ctx: &DrawContext, pos: Vec2) -> Rgb<palette::encoding::Srgb, u8> {
     let audio_val = if !ctx.audio.is_empty() {
         let audio_scale = Vec2::new(1.0/(16.0*4.0), 1.0/(16.0/2.0));
 
@@ -33,11 +35,17 @@ pub fn draw(pos: Vec2, ctx: &Context) -> Rgb<palette::encoding::Srgb, u8> {
     let scale = Vec2::new(0.2, 0.05);
     
     //use this to have the animation animate over the distance
-    let animation_pos = pos*Vec2::new(1.0*(1.0+(0.123*ctx.elapsed_seconds).sin()),1.0);
-    // let animation_f = ctx.elapsed_seconds*1.545;
+    let offset = 0.023*ctx.elapsed_seconds;
+    let offset_val = offset.sin();
+    // let offset_val = ctx.noise.get([ctx.elapsed_seconds as f64*10.0, 0.0]) as f32;
+
+    let animation_pos = pos*Vec2::new(1.0*(1.0+offset_val),1.0);
+
+    // let animation_f = ctx.elapsed_seconds*1.545 + noise::Perlin::default().get(ctx.elapsed_seconds);
     let animation_f = ctx.elapsed_seconds*1.345 - animation_pos.length()/32.0;
 
-    let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
+    let fact_sin = ctx.noise.get([animation_f as f64 * 5.0, 0.0]) as f32 * 2.0;
+    // let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
     let animated_scale = Vec2::new(1.1 + 0.5 * fact_sin, 1.0);
 
     let tri_pos = pos * scale * animated_scale+pos.signum()*audio_val*1.0;
