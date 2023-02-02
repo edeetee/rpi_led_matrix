@@ -3,7 +3,7 @@ use clap::Parser;
 
 use glam::Vec2;
 use mapping::{DmxAddress, LedMappingTrait, LedMappingEnum};
-use matrix_mapping::LedMatrix;
+use matrix_mapping::MatrixMapping;
 use spin_sleep::{SpinSleeper, sleep};
 
 use std::{
@@ -22,7 +22,7 @@ mod matrix_mapping;
 mod strip_mapping;
 mod cli;
 
-use crate::{draw::draw};
+use crate::{draw::draw, strip_mapping::StripMapping};
 
 #[cfg(feature = "gui")]
 mod previs_ui;
@@ -75,7 +75,7 @@ fn chained_led_mappings<'a, T: LedMappingTrait>(address: DmxAddress, make_mappin
 }
 
 fn chained_led_matrices(width: usize, address: DmxAddress, pos: impl IntoIterator<Item=Vec2>) -> impl Iterator<Item=LedMappingInfo> {
-    chained_led_mappings(address, move || LedMatrix::new(width))
+    chained_led_mappings(address, move || MatrixMapping::new(width))
         .zip(pos)
         .map(|((address, matrix), pos)| LedMappingInfo::new(matrix.into(), pos, address))
 }
@@ -101,7 +101,12 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 
             let center_offset = -glam::Vec2::new(0.5, 0.5)*16.0 + glam::Vec2::new(0.5,0.5);
 
-            let draw_pos = pos_f + center_offset + fixture.pos_offset;
+            let pos_f_scale = match mapping {
+                LedMappingEnum::MatrixMapping(_) => Vec2::ONE,
+                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.3,
+            };
+
+            let draw_pos = pos_f*pos_f_scale + center_offset + fixture.pos_offset;
 
             let color = draw(&ctx, draw_pos);
 
@@ -140,6 +145,11 @@ fn main() {
         .chain(
             chained_led_matrices(16, (0,48).into(), vec![Vec2::new(0.0, 2.0*16.0), Vec2::new(0.0, 3.0*16.0)])
         )
+        .chain(std::iter::once(LedMappingInfo { 
+            mapping: StripMapping::new(64).into(), 
+            dmx_address: (0,30).into(), 
+            pos_offset: Vec2::new(8.0, 7.5)
+        }))
         .collect::<Vec<_>>();
 
     let matrices_clone = matrices.clone();

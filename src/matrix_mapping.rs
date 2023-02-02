@@ -3,17 +3,17 @@ use glam::{Vec2, UVec2};
 use crate::mapping::*;
 
 #[derive(Debug, Clone, Copy)]
-pub struct LedMatrix {
+pub struct MatrixMapping {
     pub width: LedIndex,
 }
 
-impl LedMatrix {
+impl MatrixMapping {
     pub fn new(width: LedIndex) -> Self {
         Self { width }
     }
 }
 
-impl Default for LedMatrix {
+impl Default for MatrixMapping {
     fn default() -> Self {
         Self {
             width: 16
@@ -22,7 +22,7 @@ impl Default for LedMatrix {
 }
 
 //todo: probably separate these concerns
-impl LedMappingTrait for LedMatrix {
+impl LedMappingTrait for MatrixMapping {
     fn get_pos(&self, index: LedIndex) -> UPos {
         let mut x = index % self.width;
         let y = index / self.width;

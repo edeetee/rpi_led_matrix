@@ -1,7 +1,7 @@
 use enum_dispatch::enum_dispatch;
 use glam::{UVec2};
 
-use crate::matrix_mapping::LedMatrix;
+use crate::{matrix_mapping::MatrixMapping, strip_mapping::StripMapping};
 
 /** Index of a pixel inside a given fixture.
  * Each pixel is made up of 3 dmx channels
@@ -66,5 +66,6 @@ pub trait LedMappingTrait: Clone {
 #[enum_dispatch]
 #[derive(Debug, Clone)]
 pub enum LedMappingEnum {
-    LedMatrix
+    MatrixMapping,
+    StripMapping
 }

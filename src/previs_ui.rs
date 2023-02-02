@@ -4,9 +4,10 @@ use std::{sync::mpsc::Receiver};
 
 // use eframe::App;
 use egui::{Color32, Pos2, Rect, TextureHandle, Ui, Vec2, RichText, ColorImage, TextureOptions, Context, Frame};
+
 use egui_multiwin::{tracked_window::{TrackedWindow, RedrawResponse, TrackedWindowOptions}, multi_window::{MultiWindow, NewWindowRequest}, glutin::{event_loop, window::WindowBuilder, dpi::{PhysicalSize, LogicalSize, LogicalPosition}, platform::macos::WindowBuilderExtMacOS}};
 
-use crate::{LedMappingInfo, LedFrameInfo, LedData, mapping::{LedMappingTrait, LedMappingEnum}, matrix_mapping::LedMatrix};
+use crate::{LedMappingInfo, LedFrameInfo, LedData, mapping::{LedMappingTrait, LedMappingEnum}, matrix_mapping::MatrixMapping};
 
 struct InfoWindow{
     info_receiver: Receiver<LedFrameInfo>
@@ -55,7 +56,7 @@ fn new_window_request<T: TrackedWindow<Data=()> + 'static>(window: T, builder: W
 }
 
 pub fn run_gui(matrices: Vec<LedMappingInfo>, led_frame_data_rx: Receiver<Vec<LedData>>, led_frame_info_rx: Receiver<LedFrameInfo>) {
-    
+
     let mut windows = MultiWindow::new();
 
     let event_loop = event_loop::EventLoop::default();
@@ -160,7 +161,8 @@ impl LedFixtureGroup {
 
 fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
     let all_cursor = ui.cursor();
-    let all_offset = Vec2::new(8.0, 0.0);
+    // let all_offset = group.screen_rect()
+    let group_offset = group.screen_rect().left_top().to_vec2();
     // let min_offset = group.re
     let image_scale = 10.0;
 
@@ -169,9 +171,10 @@ fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
         let screen_offset = screen_info.pos_offset;
 
         let image_offset_pos =
-            Pos2::new(screen_offset.x * image_scale, screen_offset.y * image_scale)
-                + all_offset * image_scale
+            Pos2::new(screen_offset.x * SCALE, screen_offset.y * SCALE)
+                - group_offset
                 + all_cursor.left_top().to_vec2();
+                
         let image_size = texture_size * image_scale;
 
         let image_rect = Rect::from_min_size(image_offset_pos, image_size);
