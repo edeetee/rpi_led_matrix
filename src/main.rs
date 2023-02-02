@@ -103,7 +103,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 
             let pos_f_scale = match mapping {
                 LedMappingEnum::MatrixMapping(_) => Vec2::ONE,
-                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.3,
+                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.2,
             };
 
             let draw_pos = pos_f*pos_f_scale + center_offset + fixture.pos_offset;
@@ -122,6 +122,14 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
     led_data
 }
 
+// fn mapping_once(dmx_address: DmxAddress, pos_offset: Vec2, mapping: LedMappingEnum)-> std::iter::Once<LedMappingInfo> {
+//     std::iter::once(LedMappingInfo { 
+//         mapping, 
+//         dmx_address, 
+//         pos_offset
+//     })
+// }
+
 fn main() {
     let args = cli::Args::parse();
 
@@ -137,19 +145,39 @@ fn main() {
         Err(err) => eprintln!("Could not bind to socket. \n{err:?}\n Continuing with UI."),
     }
 
-    let matrices = chained_led_matrices(16, (0,44).into(), 
-    vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
+    let matrices = 
+        chained_led_matrices(16, (0,44).into(), vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
         .chain(
             chained_led_matrices(16, (0,40).into(), vec![Vec2::new(-8.0, 16.0), Vec2::new(8.0, 16.0)])
         )
         .chain(
             chained_led_matrices(16, (0,48).into(), vec![Vec2::new(0.0, 2.0*16.0), Vec2::new(0.0, 3.0*16.0)])
         )
+        
         .chain(std::iter::once(LedMappingInfo { 
-            mapping: StripMapping::new(64).into(), 
-            dmx_address: (0,30).into(), 
+            mapping: StripMapping::new(6, false).into(), 
+            dmx_address: (0,36).into(), 
+            pos_offset: Vec2::new(16.0, 7.5)
+        }))
+        
+        .chain(std::iter::once(LedMappingInfo { 
+            mapping: StripMapping::new(100, true).into(), 
+            dmx_address: (0,38).into(), 
             pos_offset: Vec2::new(8.0, 7.5)
         }))
+
+        .chain(std::iter::once(LedMappingInfo { 
+            mapping: StripMapping::new(6, false).into(), 
+            dmx_address: (0,34).into(), 
+            pos_offset: Vec2::new(16.0, 7.5)
+        }))
+        
+        .chain(std::iter::once(LedMappingInfo { 
+            mapping: StripMapping::new(100, true).into(), 
+            dmx_address: (0,32).into(), 
+            pos_offset: Vec2::new(8.0, 7.5)
+        }))
+
         .collect::<Vec<_>>();
 
     let matrices_clone = matrices.clone();
