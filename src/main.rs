@@ -142,7 +142,13 @@ fn main() {
                 .connect(addr)
                 .expect("Failed to connect to the artnet server");
         }
-        Err(err) => eprintln!("Could not bind to socket. \n{err:?}\n Continuing with UI."),
+        Err(err) => {
+            eprintln!("Could not bind to socket. \n{err:?}");
+            if ! cfg!(feature = "gui"){
+                panic!();
+            }
+            eprintln!("Continuing with UI.");
+        },
     }
 
     let matrices = 
