@@ -194,8 +194,8 @@ fn main() {
     let audio_rx = audio::get_audio();
     let mut noise = noise::Perlin::default();
  
-    let (led_frame_tx, led_frame_rx) = sync_channel(1);
-    let (led_frame_info_tx, led_frame_data_rx) = sync_channel(1);
+    let (led_data_tx, led_data_rx) = sync_channel(1);
+    let (led_frame_info_tx, led_frame_info_rx) = sync_channel(1);
 
     let dmx_thread = thread::spawn(move || {
 
@@ -220,7 +220,7 @@ fn main() {
 
             let led_data = render_leds(ctx, &matrices, &mut dmx_data);
 
-            led_frame_tx.try_send(led_data).ok();
+            led_data_tx.try_send(led_data).ok();
 
             for (port_address, data) in &dmx_data {
                 let command = ArtCommand::Output(Output {
@@ -270,10 +270,10 @@ fn main() {
 
     if !args.headless && cfg!(feature = "gui") {
         #[cfg(feature = "gui")]
-        previs_ui::run_gui(matrices_clone, led_frame_rx, led_frame_data_rx);
+        previs_ui::run_gui(matrices_clone, led_data_rx, led_frame_info_rx);
     } else {
         loop {
-            let data = led_frame_data_rx.recv().unwrap();
+            let data = led_frame_info_rx.recv().unwrap();
 
             println!("{data:?}");
             sleep(Duration::from_millis(1000));

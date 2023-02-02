@@ -45,9 +45,9 @@ pub fn draw(ctx: &DrawContext, pos: Vec2) -> Rgb<palette::encoding::Srgb, u8> {
     // let animation_f = ctx.elapsed_seconds*1.545 + noise::Perlin::default().get(ctx.elapsed_seconds);
     let animation_f = ctx.elapsed_seconds*0.645 - animation_pos.length()/16.0;
 
-    let noise = ctx.noise.get([animation_f as f64 * 5.0, 0.0]) as f32 * 2.0;
-    // let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
-    let animated_scale = Vec2::new(1.1 + 0.5 * noise, 1.0);
+    // let noise = ctx.noise.get([animation_f as f64 * 5.0, 0.0]) as f32 * 2.0;
+    let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
+    let animated_scale = Vec2::new(1.1 + 0.5 * fact_sin, 1.0);
 
     let tri_pos = pos * scale * animated_scale+pos.signum()*audio_val*1.0;
 
