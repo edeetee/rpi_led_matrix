@@ -17,7 +17,7 @@ pub struct DrawContext {
     pub elapsed: Duration,
     pub elapsed_seconds: f32,
     pub audio: Vec<f32>,
-    pub noise: Perlin
+    // pub noise: Perlin
 }
 
 pub fn draw(ctx: &DrawContext, pos: Vec2) -> Rgb<palette::encoding::Srgb, u8> {
@@ -32,7 +32,7 @@ pub fn draw(ctx: &DrawContext, pos: Vec2) -> Rgb<palette::encoding::Srgb, u8> {
         0.0
     };
 
-    let scale = Vec2::new(0.2, 0.05);
+    let scale = Vec2::new(0.05, 0.05);
     
     //use this to have the animation animate over the distance
     let offset = 0.423*ctx.elapsed_seconds;

@@ -192,7 +192,7 @@ fn main() {
     
     #[cfg(feature = "jack")]
     let audio_rx = audio::get_audio();
-    let mut noise = noise::Perlin::default();
+    // let mut noise = noise::Perlin::default();
  
     let (led_data_tx, led_data_rx) = sync_channel(1);
     let (led_frame_info_tx, led_frame_info_rx) = sync_channel(1);
@@ -210,7 +210,7 @@ fn main() {
             let ctx = DrawContext {
                 elapsed_seconds,
                 elapsed,
-                noise,
+                // noise,
 
                 #[cfg(feature = "jack")]
                 audio: audio_rx.recv().unwrap(),
