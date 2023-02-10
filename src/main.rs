@@ -24,6 +24,8 @@ mod cli;
 
 use crate::{draw::draw, strip_mapping::StripMapping};
 
+mod pd_receive;
+
 #[cfg(feature = "gui")]
 mod previs_ui;
 
@@ -51,6 +53,16 @@ impl LedMappingInfo {
     }
 }
 
+fn print_mapping_info(mappings: &[LedMappingInfo]) {
+    for LedMappingInfo { mapping, dmx_address, pos_offset } in mappings {
+        println!("{mapping:?}\t {dmx_address:?}\t {pos_offset:?}");
+    }
+}
+
+pub fn mix(a: f32, b: f32, mix: f32) -> f32 {
+    a*(1.0-mix) + b*mix
+}
+
 ///Led data structured in the dmx alignment
 #[derive(Clone)]
 pub struct LedData {
@@ -63,6 +75,7 @@ pub struct LedFrameInfo {
     target_period: Duration,
     last_period: Duration,
     rendering_period: Duration,
+    elapsed_since_pd_message: Duration,
 }
 
 fn chained_led_mappings<'a, T: LedMappingTrait>(address: DmxAddress, make_mapping: impl Fn() -> T) -> impl Iterator<Item = (DmxAddress, T)> {
@@ -122,34 +135,31 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
     led_data
 }
 
-// fn mapping_once(dmx_address: DmxAddress, pos_offset: Vec2, mapping: LedMappingEnum)-> std::iter::Once<LedMappingInfo> {
-//     std::iter::once(LedMappingInfo { 
-//         mapping, 
-//         dmx_address, 
-//         pos_offset
-//     })
-// }
-
 fn main() {
     let args = cli::Args::parse();
 
+    let pd_rx = pd_receive::receive();
+
     let socket = UdpSocket::bind((BIND_ADDR, 0));
-    let addr = (ARTNET_ADDR, PORT);
 
     match &socket {
         Ok(socket) => {
+            let addr = (ARTNET_ADDR, PORT);
+
             socket
                 .connect(addr)
-                .expect("Failed to connect to the artnet server");
+                .expect("Failed to connect to the ArtNet controller");
         }
         Err(err) => {
-            eprintln!("Could not bind to socket. \n{err:?}");
-            if ! cfg!(feature = "gui"){
+            eprintln!("Could not bind to the network adapter at {BIND_ADDR:?}.\n{err:?}");
+            if cfg!(not(feature = "gui")) && cfg!(not(debug_assertions)) {
                 panic!();
             }
-            eprintln!("Continuing with UI.");
+            eprintln!("CONTINUING...");
         },
     }
+
+    let strips_offset_y = 32.0;
 
     let matrices = 
         chained_led_matrices(16, (0,44).into(), vec![Vec2::new(-8.0, 0.0), Vec2::new(8.0, 0.0)])
@@ -163,32 +173,34 @@ fn main() {
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(6, false).into(), 
             dmx_address: (0,36).into(), 
-            pos_offset: Vec2::new(16.0, 7.5)
+            pos_offset: Vec2::new(16.0, strips_offset_y)
         }))
         
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(100, true).into(), 
             dmx_address: (0,38).into(), 
-            pos_offset: Vec2::new(8.0, 7.5)
+            pos_offset: Vec2::new(8.0, strips_offset_y)
         }))
 
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(6, false).into(), 
             dmx_address: (0,34).into(), 
-            pos_offset: Vec2::new(16.0, 7.5)
+            pos_offset: Vec2::new(16.0, strips_offset_y)
         }))
         
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(100, true).into(), 
             dmx_address: (0,32).into(), 
-            pos_offset: Vec2::new(8.0, 7.5)
+            pos_offset: Vec2::new(8.0, strips_offset_y)
         }))
 
         .collect::<Vec<_>>();
 
     let matrices_clone = matrices.clone();
 
-    println!("DMX Squares: {matrices:#?}");
+
+    // println!("DMX Squares: {matrices:#?}");
+    print_mapping_info(&matrices);
     
     #[cfg(feature = "jack")]
     let audio_rx = audio::get_audio();
@@ -201,7 +213,7 @@ fn main() {
 
         let start_time = Instant::now();
 
-        let process_led_frame = || {
+        let process_led_frame = |pd_trail: &[f32]| {
             let mut dmx_data: HashMap<PortAddress, [u8; 512]> = Default::default();
 
             let elapsed = start_time.elapsed();
@@ -215,7 +227,7 @@ fn main() {
                 #[cfg(feature = "jack")]
                 audio: audio_rx.recv().unwrap(),
                 #[cfg(not(feature = "jack"))]
-                audio: vec![0.0]
+                audio: &pd_trail
             };
 
             let led_data = render_leds(ctx, &matrices, &mut dmx_data);
@@ -246,21 +258,56 @@ fn main() {
 
         let sleeper = SpinSleeper::new(10_000_000);
 
+        let mut pd_trail = [0.0; 32];
+        let mut last_pd_message = Instant::now();
+
         loop {
             let elapsed_frame_time = last_start_frame_time.elapsed();
             last_start_frame_time = Instant::now();
+
             
-            process_led_frame();
+            
+            process_led_frame(&pd_trail);
 
             match led_frame_info_tx.try_send(LedFrameInfo {
                             target_period: target_loop_period,
                             last_period: elapsed_frame_time,
-                            rendering_period: last_start_frame_time.elapsed()
+                            rendering_period: last_start_frame_time.elapsed(),
+                            elapsed_since_pd_message: last_pd_message.elapsed()
                         }) {
                 Err(std::sync::mpsc::TrySendError::Disconnected(_)) => {
                     panic!("Led data receiver disconnected!");
                 }
                 _ => {},
+            };
+
+            match pd_rx.recv_timeout(target_loop_period.saturating_sub(last_start_frame_time.elapsed())) {
+                Ok(pd_receive::PdPacket::VoiceLevel(voice_level)) => {
+                    // pd_trail.rotate_right(1);
+
+                    //iterate from end to start, copying the new value
+                    for i in (0..pd_trail.len()).rev() {
+                        let old = pd_trail[i];
+
+                        let new = if i == 0 {
+                            voice_level*4.0
+                        } else{
+                            pd_trail[i-1]
+                        };
+                            
+                        pd_trail[i] = mix(old, new, 0.7);
+                        // pd_trail[i] = new;
+                    }
+
+                    // println!("{max_voice:?}");
+
+                    // pd_trail[0] = voice_level;
+                    last_pd_message = Instant::now();
+                },
+                // Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                //     panic!("PdPacket Receiver disconnected!");
+                // },
+                _ => {}
             };
 
             sleeper.sleep(target_loop_period.saturating_sub(last_start_frame_time.elapsed()));

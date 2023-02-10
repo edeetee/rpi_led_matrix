@@ -23,10 +23,11 @@ impl TrackedWindow for InfoWindow {
     fn redraw(&mut self, data: &mut Self::Data, egui: &mut egui_multiwin::egui_glow::EguiGlow) -> egui_multiwin::tracked_window::RedrawResponse<Self::Data> {
         let frame_info = self.info_receiver.recv().unwrap();
         let frame_data_text = format!(
-            "target period: {:.2}ms\nlast period: {:.2}ms\nrendering period: {:.2}ms", 
+            "target period: {:.2}ms\nlast period: {:.2}ms\nrendering period: {:.2}ms\nlast pd message: {:.2}ms", 
             frame_info.target_period.as_secs_f32()*1000.0, 
             frame_info.last_period.as_secs_f32()*1000.0, 
-            frame_info.rendering_period.as_secs_f32()*1000.0
+            frame_info.rendering_period.as_secs_f32()*1000.0,
+            frame_info.elapsed_since_pd_message.as_secs_f32()*1000.0
     );
 
         egui.egui_winit.set_pixels_per_point(2.0);

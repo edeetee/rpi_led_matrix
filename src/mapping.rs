@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use enum_dispatch::enum_dispatch;
 use glam::{UVec2};
 
@@ -17,12 +19,18 @@ pub type UPos = UVec2;
 
 pub const CHANNELS_PER_UNIVERSE: usize = 510;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DmxAddress {
     /// Pretty much the universe
     pub universe: u8,
     /// The DMX512 address
     pub channel: usize,
+}
+
+impl Debug for DmxAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DmxAddress(u: {},c: {})", self.universe, self.channel)
+    }
 }
 
 impl DmxAddress {
@@ -64,8 +72,17 @@ pub trait LedMappingTrait: Clone {
 }
 
 #[enum_dispatch]
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum LedMappingEnum {
     MatrixMapping,
     StripMapping
+}
+
+impl Debug for LedMappingEnum {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MatrixMapping(arg0) => arg0.fmt(f),
+            Self::StripMapping(arg0) => arg0.fmt(f),
+        }
+    }
 }
