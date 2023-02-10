@@ -175,7 +175,7 @@ fn main() {
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(6, false).into(), 
             dmx_address: (0,36).into(), 
-            pos_offset: Vec2::new(16.0, strips_offset_y)
+            pos_offset: Vec2::new(16.0, strips_offset_y+1.0)
         }))
         
         .chain(std::iter::once(LedMappingInfo { 
@@ -187,7 +187,7 @@ fn main() {
         .chain(std::iter::once(LedMappingInfo { 
             mapping: StripMapping::new(6, false).into(), 
             dmx_address: (0,34).into(), 
-            pos_offset: Vec2::new(16.0, strips_offset_y)
+            pos_offset: Vec2::new(16.0, strips_offset_y+1.0)
         }))
         
         .chain(std::iter::once(LedMappingInfo { 

@@ -1,6 +1,6 @@
 use std::{time::Duration, f32::consts::{*}};
 
-use ecolor::{Hsva, Color32, Rgba};
+use ecolor::{Hsva, Color32, Rgba, HsvaGamma};
 use glam::Vec2;
 use noise::{NoiseFn, Perlin};
 use palette::{rgb::Rgb, FromColor, Hsv, Srgb, LinSrgb, IntoColor};
@@ -67,23 +67,40 @@ pub fn draw_blobs(ctx: &DrawContext, pos: Vec2) -> Rgba {
     };
 
     // let hue
-    let brightness = 1.0;
+    // let brightness = 1.0;
 
-    let val = ((shape_val*1.5 + tri_pos.length()*0.1 + ctx.elapsed_seconds * 0.1123) % 1.0).powi(10);
+    let val = (
+        (
+            shape_val*1.5
+            + tri_pos.length()*0.1
+            + ctx.elapsed_seconds * 0.1123
+        ) % 1.0
+        - ((pos.length()*100.0+ctx.elapsed_seconds*0.4) % 1.0) * 0.3 * (1.0 + (pos.length()*0.1-ctx.elapsed_seconds*2.0).sin())
+        // - ((pos.length()*100.0+ctx.elapsed_seconds*0.2) % 0.5)
+    )
+    .powi(3);
+
     // let val = audio_val;
 
-    let hsv = Hsva::new(
-        ((shape_val * 20.0 + -ctx.elapsed_seconds * 3.1232).sin()) * 0.2 + 0.8,
-        1.0, // ((shape_val)%1.0).powf(0.5),
-        val * brightness,
-        1.0
-    );
+    let hsv = HsvaGamma {
+        h: ((shape_val * 20.0 + -ctx.elapsed_seconds * 3.1232).sin()) * 0.2 + 0.8,
+        s: 1.0,
+        v: val,
+        a: 1.0
+    };
+
+    // let hsv = HsvaGamma::new(
+    //     ,
+    //     1.0, // ((shape_val)%1.0).powf(0.5),
+    //     val * brightness,
+    //     1.0
+    // );
 
     hsv.into()
 }
 
 pub fn draw_lightning(ctx: &DrawContext, pos: Vec2) -> Rgba {
-    let audio_val = ctx.sample_audio(pos*1.0);
+    let audio_val = ctx.sample_audio(pos*0.5);
 
     let scaled_pos = pos / (Vec2::ONE*32.0);
     let pos_length = scaled_pos.length();

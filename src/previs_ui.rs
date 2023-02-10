@@ -181,7 +181,7 @@ fn draw_screens(ui: &mut Ui, group: &LedFixtureGroup) {
         let image_rect = Rect::from_min_size(image_offset_pos, image_size);
 
         let info_text = format!(
-            "universe {}\nchannel {}",
+            "u: {}\nc: {}",
             screen_info.dmx_address.universe, screen_info.dmx_address.channel
         );
 
