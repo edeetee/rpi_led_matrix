@@ -1562,6 +1562,7 @@ version = "0.1.0"
 dependencies = [
  "artnet_protocol",
  "clap",
+ "ecolor",
  "egui",
  "egui-multiwin",
  "enum_dispatch",

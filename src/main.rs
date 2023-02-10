@@ -1,6 +1,7 @@
 use artnet_protocol::{ArtCommand, Output, PortAddress};
 use clap::Parser;
 
+use ecolor::Color32;
 use glam::Vec2;
 use mapping::{DmxAddress, LedMappingTrait, LedMappingEnum};
 use matrix_mapping::MatrixMapping;
@@ -14,7 +15,7 @@ use std::{
     thread::{self},
     time::{Duration, Instant},
 };
-use draw::DrawContext;
+use draw::{DrawContext, draw_lightning};
 
 mod draw;
 mod mapping;
@@ -22,7 +23,7 @@ mod matrix_mapping;
 mod strip_mapping;
 mod cli;
 
-use crate::{draw::draw, strip_mapping::StripMapping};
+use crate::{draw::draw_blobs, strip_mapping::StripMapping};
 
 mod pd_receive;
 
@@ -67,7 +68,7 @@ pub fn mix(a: f32, b: f32, mix: f32) -> f32 {
 #[derive(Clone)]
 pub struct LedData {
     info: LedMappingInfo,
-    data: Vec<[u8; 3]>
+    data: Vec<Color32>
 }
 
 #[derive(Debug)]
@@ -99,7 +100,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
     for fixture in matrices {
         let mapping = &fixture.mapping;
 
-        let mut pixels = vec![[0,0,0]; mapping.get_num_pixels()];
+        let mut pixels = vec![Color32::BLACK; mapping.get_num_pixels()];
 
         for i in 0..mapping.get_num_pixels() {
             let dmx_target = fixture.dmx_address.pixel_offset(i);
@@ -121,12 +122,13 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 
             let draw_pos = pos_f*pos_f_scale + center_offset + fixture.pos_offset;
 
-            let color = draw(&ctx, draw_pos);
+            let color = draw_blobs(&ctx, draw_pos)
+                + draw_lightning(&ctx, draw_pos);
 
-            pixels[i] = [color.red, color.green, color.blue];
+            pixels[i] = color.into();
 
-            dmx_universe_output[dmx_channel_start..dmx_channel_start+3]
-                .swap_with_slice(&mut [color.red, color.green, color.blue]);
+            dmx_universe_output[dmx_channel_start..][..3]
+                .copy_from_slice(&pixels[i].to_array()[..3]);
         }
 
         led_data.push(LedData { info: fixture.clone(), data: pixels });
@@ -290,12 +292,12 @@ fn main() {
                         let old = pd_trail[i];
 
                         let new = if i == 0 {
-                            voice_level*4.0
+                            voice_level*2.0
                         } else{
                             pd_trail[i-1]
                         };
                             
-                        pd_trail[i] = mix(old, new, 0.7);
+                        pd_trail[i] = mix(old, new, 0.8);
                         // pd_trail[i] = new;
                     }
 

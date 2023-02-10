@@ -20,6 +20,7 @@ jack = {version="0.11.3", optional=true}
 
 # eframe = {version="0.20.1", optional=true}
 egui = {version="0.20.1", features=["mint"], optional=true}
+ecolor = "0.20.0"
 glam = { version = "0.22.0", features = ["mint"] }
 noise = "0.8.2"
 egui-multiwin = {version="0.1.2", optional=true}
