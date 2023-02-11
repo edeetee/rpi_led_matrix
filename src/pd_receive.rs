@@ -1,4 +1,6 @@
-use std::{net::{Ipv4Addr, UdpSocket, SocketAddr}, sync::mpsc::{sync_channel, TrySendError}};
+use std::{net::{Ipv4Addr, UdpSocket, SocketAddr}, sync::{mpsc::{sync_channel, TrySendError}, RwLock, Arc}};
+
+use crate::RLock::{RLock, split_arwlock};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PdPacket {
@@ -19,13 +21,19 @@ fn parse_packet(packet: &str) -> Option<PdPacket>{
     }
 }
 
-pub fn receive() -> std::sync::mpsc::Receiver<PdPacket> {
+pub struct PdState {
+    pub voice_level: f32
+}
+
+pub fn receive() -> RLock<PdState> {
     let addr: SocketAddr = (Ipv4Addr::UNSPECIFIED, 2000).into();
     let socket = UdpSocket::bind(addr).unwrap();
 
     let mut buf = [0u8; 128];
 
-    let (pd_tx, pd_rx) = sync_channel(0);
+    // let (pd_tx, pd_rx) = sync_channel(0);
+
+    let (rw_state, r_state) = split_arwlock(PdState {voice_level: 0.0 });
 
     std::thread::spawn(move || {
         loop {
@@ -36,16 +44,25 @@ pub fn receive() -> std::sync::mpsc::Receiver<PdPacket> {
 
                 if let Some(data) = &data {
                     // println!("try_send:\t{data:?}");
-                    let resp = pd_tx.try_send(data.clone());
-
-                    if let Err(TrySendError::Disconnected(_)) = resp {
-                        panic!("Receiver has been disconnected!");
+                    // let resp = pd_tx.try_send(data.clone());
+                    let mut state = rw_state.write().unwrap();
+                    match data {
+                        PdPacket::VoiceLevel(voice_level) => {
+                            state.voice_level = *voice_level
+                        },
                     }
+                    // .voice_level = data;
+
+                    // if let Err(TrySendError::Disconnected(_)) = resp {
+                    //     panic!("Receiver has been disconnected!");
+                    // }
                 }
         }
     });
+
+    r_state
     
-    pd_rx
+    // pd_rx
 }
 
 

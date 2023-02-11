@@ -22,6 +22,7 @@ mod mapping;
 mod matrix_mapping;
 mod strip_mapping;
 mod cli;
+mod RLock;
 
 use crate::{draw::draw_blobs, strip_mapping::StripMapping};
 
@@ -140,7 +141,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 fn main() {
     let args = cli::Args::parse();
 
-    let pd_rx = pd_receive::receive();
+    let pd_state = pd_receive::receive();
 
     let socket = UdpSocket::bind((BIND_ADDR, 0));
 
@@ -267,7 +268,22 @@ fn main() {
             let elapsed_frame_time = last_start_frame_time.elapsed();
             last_start_frame_time = Instant::now();
 
+            let voice_level = pd_state.read().unwrap().voice_level;
+
+            for i in (0..pd_trail.len()).rev() {
+                let old = pd_trail[i];
+
+                let new = if i == 0 {
+                    voice_level*2.0
+                } else{
+                    pd_trail[i-1]
+                };
+                    
+                pd_trail[i] = mix(old, new, 0.5);
+                // pd_trail[i] = new;
+            }
             
+            last_pd_message = Instant::now();
             
             process_led_frame(&pd_trail);
 
@@ -281,35 +297,6 @@ fn main() {
                     panic!("Led data receiver disconnected!");
                 }
                 _ => {},
-            };
-
-            match pd_rx.recv_timeout(target_loop_period.saturating_sub(last_start_frame_time.elapsed())) {
-                Ok(pd_receive::PdPacket::VoiceLevel(voice_level)) => {
-                    // pd_trail.rotate_right(1);
-
-                    //iterate from end to start, copying the new value
-                    for i in (0..pd_trail.len()).rev() {
-                        let old = pd_trail[i];
-
-                        let new = if i == 0 {
-                            voice_level*2.0
-                        } else{
-                            pd_trail[i-1]
-                        };
-                            
-                        pd_trail[i] = mix(old, new, 0.8);
-                        // pd_trail[i] = new;
-                    }
-
-                    // println!("{max_voice:?}");
-
-                    // pd_trail[0] = voice_level;
-                    last_pd_message = Instant::now();
-                },
-                // Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                //     panic!("PdPacket Receiver disconnected!");
-                // },
-                _ => {}
             };
 
             sleeper.sleep(target_loop_period.saturating_sub(last_start_frame_time.elapsed()));
