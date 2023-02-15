@@ -220,7 +220,7 @@ fn main() {
                     //     panic!();
                     // }
                     eprintln!("RETRYING...\n");
-                    sleep(Duration::from_millis(1000))
+                    sleep(Duration::from_millis(1000));
                 },
             }
         };
@@ -255,7 +255,10 @@ fn main() {
 
                 match socket.send(&command.write_to_buffer().unwrap()) {
                     Ok(_) => {},
-                    Err(err) => {eprintln!("Failed to send via socket {err:?}. Continuing..")},
+                    Err(err) => {
+                        eprintln!("Failed to send via socket {err:?}. Continuing..");
+                        sleep(Duration::from_millis(1000));
+                    },
                 }
             }
         };
