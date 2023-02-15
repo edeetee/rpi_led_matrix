@@ -12,7 +12,7 @@ use std::{
     fmt::Debug,
     net::UdpSocket,
     sync::{mpsc::{sync_channel}},
-    thread::{self},
+    thread::{self, yield_now},
     time::{Duration, Instant},
 };
 use draw::{DrawContext, draw_lightning};
@@ -299,6 +299,7 @@ fn main() {
                 _ => {},
             };
 
+            yield_now();
             sleeper.sleep(target_loop_period.saturating_sub(last_start_frame_time.elapsed()));
         }
     });

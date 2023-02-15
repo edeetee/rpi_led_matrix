@@ -149,7 +149,7 @@ pub fn draw_lightning(ctx: &DrawContext, pos: Vec2) -> Rgba {
     let radial_line: f32 = if (
         main_line < 0.2
         && fine_detail < 0.5
-        && 0.05 < audio_val.abs()
+        && 0.02 < audio_val.abs()
     ) {
         1.0
     } else {
