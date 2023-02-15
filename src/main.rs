@@ -263,7 +263,7 @@ fn main() {
             }
         };
 
-        let target_loop_period = Duration::from_millis(1000 / 60);
+        let target_loop_period = Duration::from_millis(1000 / 30);
         let mut last_start_frame_time = Instant::now();
 
         let sleeper = SpinSleeper::new(10_000_000);
@@ -290,7 +290,7 @@ fn main() {
                 // pd_trail[i] = new;
             }
             
-            last_pd_message = Instant::now();
+            // last_pd_message = Instant::now();
             
             process_led_frame(&pd_trail);
 
