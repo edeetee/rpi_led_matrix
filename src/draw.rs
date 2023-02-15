@@ -70,7 +70,7 @@ pub fn draw_blobs(ctx: &DrawContext, pos: Vec2) -> Rgba {
     let fact_sin = ((animation_f*3.32).sin() * 1.94512).sin();
     let animated_scale = Vec2::new(1.1 + 0.5 * fact_sin, 1.0);
 
-    let tri_pos = pos * scale * Vec2::new(1.0+audio_val, 1.0);
+    let tri_pos = pos * scale * Vec2::new(1.0+audio_val*3.0, 1.0);
         // + pos.signum() * Vec2::new(1.0,0.0)*audio_val*1.0;
 
     let mask_max = 3.0;
@@ -88,7 +88,7 @@ pub fn draw_blobs(ctx: &DrawContext, pos: Vec2) -> Rgba {
     let bit_destruction = (
         (pos.length()*100.0+ctx.elapsed_seconds*0.4) % 1.0) 
         // * 0.3 
-        * (1.0 + (pos.length()*1.0-ctx.elapsed_seconds*2.0).sin()
+        * (1.0 + (pos.length()*0.5-ctx.elapsed_seconds*4.0).sin().powf(2.0)
     );
     
     let val = (

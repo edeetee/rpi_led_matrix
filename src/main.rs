@@ -118,7 +118,7 @@ fn render_leds(ctx: DrawContext, matrices: &[LedMappingInfo], dmx_data: &mut Has
 
             let pos_f_scale = match mapping {
                 LedMappingEnum::MatrixMapping(_) => Vec2::ONE,
-                LedMappingEnum::StripMapping(_) => Vec2::ONE*0.1,
+                LedMappingEnum::StripMapping(_) => Vec2::ONE*2.0,
             };
 
             let draw_pos = pos_f*pos_f_scale + center_offset + fixture.pos_offset;
@@ -279,7 +279,7 @@ fn main() {
                     pd_trail[i-1]
                 };
                     
-                pd_trail[i] = mix(old, new, 0.5);
+                pd_trail[i] = mix(old, new, 0.9);
                 // pd_trail[i] = new;
             }
             
