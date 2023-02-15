@@ -5,14 +5,14 @@ use ecolor::Color32;
 use glam::Vec2;
 use mapping::{DmxAddress, LedMappingTrait, LedMappingEnum};
 use matrix_mapping::MatrixMapping;
-use spin_sleep::{SpinSleeper, sleep};
+use spin_sleep::{SpinSleeper};
 
 use std::{
     collections::HashMap,
     fmt::Debug,
     net::UdpSocket,
     sync::{mpsc::{sync_channel}},
-    thread::{self, yield_now},
+    thread::{self, yield_now, sleep},
     time::{Duration, Instant},
 };
 use draw::{DrawContext, draw_lightning};
@@ -143,25 +143,6 @@ fn main() {
 
     let pd_state = pd_receive::receive();
 
-    let socket = UdpSocket::bind((BIND_ADDR, 0));
-
-    match &socket {
-        Ok(socket) => {
-            let addr = (ARTNET_ADDR, PORT);
-
-            socket
-                .connect(addr)
-                .expect("Failed to connect to the ArtNet controller");
-        }
-        Err(err) => {
-            eprintln!("Could not bind to the network adapter at {BIND_ADDR:?}.\n{err:?}");
-            if cfg!(not(feature = "gui")) && cfg!(not(debug_assertions)) {
-                panic!();
-            }
-            eprintln!("CONTINUING...");
-        },
-    }
-
     let strips_offset_y = 32.0;
 
     let matrices = 
@@ -201,7 +182,6 @@ fn main() {
 
     let matrices_clone = matrices.clone();
 
-
     // println!("DMX Squares: {matrices:#?}");
     print_mapping_info(&matrices);
     
@@ -215,6 +195,35 @@ fn main() {
     let dmx_thread = thread::spawn(move || {
 
         let start_time = Instant::now();
+
+        let socket = loop {
+
+            let socket = UdpSocket::bind((BIND_ADDR, 0));
+
+            match socket {
+                Ok(socket) => {
+                    let addr = (ARTNET_ADDR, PORT);
+
+                    break loop {
+                        match socket.connect(addr) {
+                            Ok(_) => break socket,
+                            Err(err) => {
+                                eprintln!("Failed to connect to the ArtNet controller.\n{err:?}\nRETRYING...");
+                                sleep(Duration::from_millis(1000)) ;
+                            },
+                        }
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Could not bind to the network adapter at {BIND_ADDR:?}.\n{err:?}");
+                    // if cfg!(not(feature = "gui")) && cfg!(not(debug_assertions)) {
+                    //     panic!();
+                    // }
+                    eprintln!("RETRYING...\n");
+                    sleep(Duration::from_millis(1000))
+                },
+            }
+        };
 
         let process_led_frame = |pd_trail: &[f32]| {
             let mut dmx_data: HashMap<PortAddress, [u8; 512]> = Default::default();
@@ -244,14 +253,9 @@ fn main() {
                     ..Default::default()
                 });
 
-                match socket {
-                    Ok(ref socket_actual) => {
-                        match socket_actual.send(&command.write_to_buffer().unwrap()) {
-                            Ok(_) => {},
-                            Err(err) => {eprintln!("Failed to send via socket {err:?}. Continuing..")},
-                        }
-                    }
-                    Err(_) => {}
+                match socket.send(&command.write_to_buffer().unwrap()) {
+                    Ok(_) => {},
+                    Err(err) => {eprintln!("Failed to send via socket {err:?}. Continuing..")},
                 }
             }
         };
